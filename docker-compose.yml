@@ -4,3 +4,34 @@ services:
       dockerfile: ./backend/Dockerfile
     ports:
       - '8080:8080'
+    environment:
+      - PORT=8080
+      - ENV=development
+
+      # Database credentials
+      - DATABASE_PORT=5432
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_USER=postgres
+      - DATABASE_HOST=peachtree-database-1
+      - DATABASE_NAME=peachtree_development
+
+    depends_on:
+      - database
+
+    volumes:
+      - ./backend:/usr/src/app/
+
+  database:
+    restart: always
+    image: postgres:15.3
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - peachtree-database-data:/var/lib/postgresql/data
+  
+volumes:
+  peachtree-database-data:
+    external: true
