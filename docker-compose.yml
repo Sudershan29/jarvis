@@ -32,6 +32,25 @@ services:
     volumes:
       - peachtree-database-data:/var/lib/postgresql/data
   
+  frontend:
+    build:
+      dockerfile: ./frontend/Dockerfile
+    ports:
+      - '8081:8081'
+      - '19006:19006'
+      - '19001:19001'
+      - '19002:19002'
+    environment:
+      - NODE_ENV=development
+      - PORT=8081
+      - MODE=web  # android / ios
+
+    depends_on:
+      - backend
+    
+    volumes:
+      - ./frontend:/opt/frontend/app/
+
 volumes:
   peachtree-database-data:
     external: true
