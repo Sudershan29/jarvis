@@ -4,7 +4,9 @@ package ent
 
 import (
 	"backend/ent/predicate"
+	"backend/ent/preference"
 	"backend/ent/user"
+	"backend/ent/userskill"
 	"context"
 	"errors"
 	"fmt"
@@ -83,9 +85,70 @@ func (uu *UserUpdate) SetNillablePremium(b *bool) *UserUpdate {
 	return uu
 }
 
+// AddSkillIDs adds the "skills" edge to the UserSkill entity by IDs.
+func (uu *UserUpdate) AddSkillIDs(ids ...int) *UserUpdate {
+	uu.mutation.AddSkillIDs(ids...)
+	return uu
+}
+
+// AddSkills adds the "skills" edges to the UserSkill entity.
+func (uu *UserUpdate) AddSkills(u ...*UserSkill) *UserUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uu.AddSkillIDs(ids...)
+}
+
+// SetPreferenceID sets the "preference" edge to the Preference entity by ID.
+func (uu *UserUpdate) SetPreferenceID(id int) *UserUpdate {
+	uu.mutation.SetPreferenceID(id)
+	return uu
+}
+
+// SetNillablePreferenceID sets the "preference" edge to the Preference entity by ID if the given value is not nil.
+func (uu *UserUpdate) SetNillablePreferenceID(id *int) *UserUpdate {
+	if id != nil {
+		uu = uu.SetPreferenceID(*id)
+	}
+	return uu
+}
+
+// SetPreference sets the "preference" edge to the Preference entity.
+func (uu *UserUpdate) SetPreference(p *Preference) *UserUpdate {
+	return uu.SetPreferenceID(p.ID)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
+}
+
+// ClearSkills clears all "skills" edges to the UserSkill entity.
+func (uu *UserUpdate) ClearSkills() *UserUpdate {
+	uu.mutation.ClearSkills()
+	return uu
+}
+
+// RemoveSkillIDs removes the "skills" edge to UserSkill entities by IDs.
+func (uu *UserUpdate) RemoveSkillIDs(ids ...int) *UserUpdate {
+	uu.mutation.RemoveSkillIDs(ids...)
+	return uu
+}
+
+// RemoveSkills removes "skills" edges to UserSkill entities.
+func (uu *UserUpdate) RemoveSkills(u ...*UserSkill) *UserUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uu.RemoveSkillIDs(ids...)
+}
+
+// ClearPreference clears the "preference" edge to the Preference entity.
+func (uu *UserUpdate) ClearPreference() *UserUpdate {
+	uu.mutation.ClearPreference()
+	return uu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -138,6 +201,80 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := uu.mutation.Premium(); ok {
 		_spec.SetField(user.FieldPremium, field.TypeBool, value)
+	}
+	if uu.mutation.SkillsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SkillsTable,
+			Columns: []string{user.SkillsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedSkillsIDs(); len(nodes) > 0 && !uu.mutation.SkillsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SkillsTable,
+			Columns: []string{user.SkillsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.SkillsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SkillsTable,
+			Columns: []string{user.SkillsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.PreferenceCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.PreferenceTable,
+			Columns: []string{user.PreferenceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(preference.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.PreferenceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.PreferenceTable,
+			Columns: []string{user.PreferenceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(preference.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -213,9 +350,70 @@ func (uuo *UserUpdateOne) SetNillablePremium(b *bool) *UserUpdateOne {
 	return uuo
 }
 
+// AddSkillIDs adds the "skills" edge to the UserSkill entity by IDs.
+func (uuo *UserUpdateOne) AddSkillIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.AddSkillIDs(ids...)
+	return uuo
+}
+
+// AddSkills adds the "skills" edges to the UserSkill entity.
+func (uuo *UserUpdateOne) AddSkills(u ...*UserSkill) *UserUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uuo.AddSkillIDs(ids...)
+}
+
+// SetPreferenceID sets the "preference" edge to the Preference entity by ID.
+func (uuo *UserUpdateOne) SetPreferenceID(id int) *UserUpdateOne {
+	uuo.mutation.SetPreferenceID(id)
+	return uuo
+}
+
+// SetNillablePreferenceID sets the "preference" edge to the Preference entity by ID if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillablePreferenceID(id *int) *UserUpdateOne {
+	if id != nil {
+		uuo = uuo.SetPreferenceID(*id)
+	}
+	return uuo
+}
+
+// SetPreference sets the "preference" edge to the Preference entity.
+func (uuo *UserUpdateOne) SetPreference(p *Preference) *UserUpdateOne {
+	return uuo.SetPreferenceID(p.ID)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearSkills clears all "skills" edges to the UserSkill entity.
+func (uuo *UserUpdateOne) ClearSkills() *UserUpdateOne {
+	uuo.mutation.ClearSkills()
+	return uuo
+}
+
+// RemoveSkillIDs removes the "skills" edge to UserSkill entities by IDs.
+func (uuo *UserUpdateOne) RemoveSkillIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.RemoveSkillIDs(ids...)
+	return uuo
+}
+
+// RemoveSkills removes "skills" edges to UserSkill entities.
+func (uuo *UserUpdateOne) RemoveSkills(u ...*UserSkill) *UserUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uuo.RemoveSkillIDs(ids...)
+}
+
+// ClearPreference clears the "preference" edge to the Preference entity.
+func (uuo *UserUpdateOne) ClearPreference() *UserUpdateOne {
+	uuo.mutation.ClearPreference()
+	return uuo
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -298,6 +496,80 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if value, ok := uuo.mutation.Premium(); ok {
 		_spec.SetField(user.FieldPremium, field.TypeBool, value)
+	}
+	if uuo.mutation.SkillsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SkillsTable,
+			Columns: []string{user.SkillsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedSkillsIDs(); len(nodes) > 0 && !uuo.mutation.SkillsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SkillsTable,
+			Columns: []string{user.SkillsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.SkillsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SkillsTable,
+			Columns: []string{user.SkillsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.PreferenceCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.PreferenceTable,
+			Columns: []string{user.PreferenceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(preference.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.PreferenceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.PreferenceTable,
+			Columns: []string{user.PreferenceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(preference.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues

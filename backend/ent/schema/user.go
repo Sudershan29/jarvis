@@ -4,7 +4,7 @@ import (
 	"time"
     "entgo.io/ent"
 	"github.com/google/uuid"
-    // "entgo.io/ent/schema/edge"
+    "entgo.io/ent/schema/edge"
     "entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/field"
 )
@@ -31,12 +31,15 @@ func (User) Fields() []ent.Field {
 
 // Edges of the User.
 func (User) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+        edge.To("skills", UserSkill.Type),
+        edge.To("preference", Preference.Type).
+            Unique(),
+    }
 }
 
 func (User) Indexes() []ent.Index {
     return []ent.Index{
         index.Fields("uuid"),
-		
     }
 }

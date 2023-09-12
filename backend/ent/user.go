@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"backend/ent/preference"
 	"backend/ent/user"
 	"fmt"
 	"strings"
@@ -27,8 +28,44 @@ type User struct {
 	// UUID holds the value of the "uuid" field.
 	UUID uuid.UUID `json:"uuid,omitempty"`
 	// Premium holds the value of the "premium" field.
-	Premium      bool `json:"premium,omitempty"`
+	Premium bool `json:"premium,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges        UserEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// Skills holds the value of the skills edge.
+	Skills []*UserSkill `json:"skills,omitempty"`
+	// Preference holds the value of the preference edge.
+	Preference *Preference `json:"preference,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [2]bool
+}
+
+// SkillsOrErr returns the Skills value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) SkillsOrErr() ([]*UserSkill, error) {
+	if e.loadedTypes[0] {
+		return e.Skills, nil
+	}
+	return nil, &NotLoadedError{edge: "skills"}
+}
+
+// PreferenceOrErr returns the Preference value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e UserEdges) PreferenceOrErr() (*Preference, error) {
+	if e.loadedTypes[1] {
+		if e.Preference == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: preference.Label}
+		}
+		return e.Preference, nil
+	}
+	return nil, &NotLoadedError{edge: "preference"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -108,6 +145,16 @@ func (u *User) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (u *User) Value(name string) (ent.Value, error) {
 	return u.selectValues.Get(name)
+}
+
+// QuerySkills queries the "skills" edge of the User entity.
+func (u *User) QuerySkills() *UserSkillQuery {
+	return NewUserClient(u.config).QuerySkills(u)
+}
+
+// QueryPreference queries the "preference" edge of the User entity.
+func (u *User) QueryPreference() *PreferenceQuery {
+	return NewUserClient(u.config).QueryPreference(u)
 }
 
 // Update returns a builder for updating this User.

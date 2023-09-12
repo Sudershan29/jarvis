@@ -3,7 +3,9 @@
 package ent
 
 import (
+	"backend/ent/preference"
 	"backend/ent/user"
+	"backend/ent/userskill"
 	"context"
 	"errors"
 	"fmt"
@@ -73,6 +75,40 @@ func (uc *UserCreate) SetNillablePremium(b *bool) *UserCreate {
 		uc.SetPremium(*b)
 	}
 	return uc
+}
+
+// AddSkillIDs adds the "skills" edge to the UserSkill entity by IDs.
+func (uc *UserCreate) AddSkillIDs(ids ...int) *UserCreate {
+	uc.mutation.AddSkillIDs(ids...)
+	return uc
+}
+
+// AddSkills adds the "skills" edges to the UserSkill entity.
+func (uc *UserCreate) AddSkills(u ...*UserSkill) *UserCreate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uc.AddSkillIDs(ids...)
+}
+
+// SetPreferenceID sets the "preference" edge to the Preference entity by ID.
+func (uc *UserCreate) SetPreferenceID(id int) *UserCreate {
+	uc.mutation.SetPreferenceID(id)
+	return uc
+}
+
+// SetNillablePreferenceID sets the "preference" edge to the Preference entity by ID if the given value is not nil.
+func (uc *UserCreate) SetNillablePreferenceID(id *int) *UserCreate {
+	if id != nil {
+		uc = uc.SetPreferenceID(*id)
+	}
+	return uc
+}
+
+// SetPreference sets the "preference" edge to the Preference entity.
+func (uc *UserCreate) SetPreference(p *Preference) *UserCreate {
+	return uc.SetPreferenceID(p.ID)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -186,6 +222,38 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.Premium(); ok {
 		_spec.SetField(user.FieldPremium, field.TypeBool, value)
 		_node.Premium = value
+	}
+	if nodes := uc.mutation.SkillsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SkillsTable,
+			Columns: []string{user.SkillsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.PreferenceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.PreferenceTable,
+			Columns: []string{user.PreferenceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(preference.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

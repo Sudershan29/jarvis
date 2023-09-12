@@ -3,8 +3,10 @@
 package ent
 
 import (
+	"backend/ent/preference"
 	"backend/ent/schema"
 	"backend/ent/user"
+	"backend/ent/userskill"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +16,16 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	preferenceFields := schema.Preference{}.Fields()
+	_ = preferenceFields
+	// preferenceDescFreeWeekends is the schema descriptor for free_weekends field.
+	preferenceDescFreeWeekends := preferenceFields[0].Descriptor()
+	// preference.DefaultFreeWeekends holds the default value on creation for the free_weekends field.
+	preference.DefaultFreeWeekends = preferenceDescFreeWeekends.Default.(bool)
+	// preferenceDescWeeklyFrequency is the schema descriptor for weekly_frequency field.
+	preferenceDescWeeklyFrequency := preferenceFields[1].Descriptor()
+	// preference.WeeklyFrequencyValidator is a validator for the "weekly_frequency" field. It is called by the builders before save.
+	preference.WeeklyFrequencyValidator = preferenceDescWeeklyFrequency.Validators[0].(func(int) error)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.
@@ -28,4 +40,14 @@ func init() {
 	userDescPremium := userFields[4].Descriptor()
 	// user.DefaultPremium holds the default value on creation for the premium field.
 	user.DefaultPremium = userDescPremium.Default.(bool)
+	userskillFields := schema.UserSkill{}.Fields()
+	_ = userskillFields
+	// userskillDescProgress is the schema descriptor for progress field.
+	userskillDescProgress := userskillFields[1].Descriptor()
+	// userskill.DefaultProgress holds the default value on creation for the progress field.
+	userskill.DefaultProgress = userskillDescProgress.Default.(int)
+	// userskillDescDuration is the schema descriptor for duration field.
+	userskillDescDuration := userskillFields[2].Descriptor()
+	// userskill.DefaultDuration holds the default value on creation for the duration field.
+	userskill.DefaultDuration = userskillDescDuration.Default.(int)
 }

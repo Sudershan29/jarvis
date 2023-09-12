@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -24,8 +25,26 @@ const (
 	FieldUUID = "uuid"
 	// FieldPremium holds the string denoting the premium field in the database.
 	FieldPremium = "premium"
+	// EdgeSkills holds the string denoting the skills edge name in mutations.
+	EdgeSkills = "skills"
+	// EdgePreference holds the string denoting the preference edge name in mutations.
+	EdgePreference = "preference"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// SkillsTable is the table that holds the skills relation/edge.
+	SkillsTable = "user_skills"
+	// SkillsInverseTable is the table name for the UserSkill entity.
+	// It exists in this package in order to avoid circular dependency with the "userskill" package.
+	SkillsInverseTable = "user_skills"
+	// SkillsColumn is the table column denoting the skills relation/edge.
+	SkillsColumn = "user_skills"
+	// PreferenceTable is the table that holds the preference relation/edge.
+	PreferenceTable = "preferences"
+	// PreferenceInverseTable is the table name for the Preference entity.
+	// It exists in this package in order to avoid circular dependency with the "preference" package.
+	PreferenceInverseTable = "preferences"
+	// PreferenceColumn is the table column denoting the preference relation/edge.
+	PreferenceColumn = "user_preference"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -88,4 +107,39 @@ func ByUUID(opts ...sql.OrderTermOption) OrderOption {
 // ByPremium orders the results by the premium field.
 func ByPremium(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPremium, opts...).ToFunc()
+}
+
+// BySkillsCount orders the results by skills count.
+func BySkillsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSkillsStep(), opts...)
+	}
+}
+
+// BySkills orders the results by skills terms.
+func BySkills(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSkillsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByPreferenceField orders the results by preference field.
+func ByPreferenceField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPreferenceStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newSkillsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SkillsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SkillsTable, SkillsColumn),
+	)
+}
+func newPreferenceStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PreferenceInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, PreferenceTable, PreferenceColumn),
+	)
 }
