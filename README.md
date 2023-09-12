@@ -14,7 +14,7 @@
 
 ## Story
 
-![alt text](https://media.tenor.com/E5mPvZRwZ7gAAAAd/kung-fu.gif "Kung Fu Panda | Peach Tree")
+![alt text](story.gif "Kung Fu Panda | Peach Tree")
 
 # Contribution
 
