@@ -14,5 +14,27 @@
 
 ## Story
 
-
 ![alt text](https://media.tenor.com/E5mPvZRwZ7gAAAAd/kung-fu.gif "Kung Fu Panda | Peach Tree")
+
+# Contribution
+
+## Running the application
+
+```
+source scripts/init.sh
+source scripts/start.sh
+```
+
+## Database
+
+1. To add models to the schema
+
+```
+go run -mod=mod entgo.io/ent/cmd/ent new <Model>
+```
+
+2. To autogenerate models 
+
+```
+go generate ./ent
+```
