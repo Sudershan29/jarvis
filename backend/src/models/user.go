@@ -7,6 +7,7 @@ import (
 	"backend/ent"
 	"backend/src/lib"
 	"backend/ent/user"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -36,13 +37,23 @@ func UserCreate(name, password, email string) (*UserModel, error) {
 	return &user, nil
 }
 
-func UserFind(email string) (*UserModel, error) {
+func UserFind(key string) (*UserModel, error) {
 	dbClient := lib.DbCtx
-	users, err := dbClient.Client.User.
-				Query().
-				Where(user.EmailAddress(email)).
-				Limit(1).
-				All(dbClient.Context)
+	user_id, err := uuid.Parse(key)
+	var users []*ent.User
+	if err != nil{
+		users, err = dbClient.Client.User.
+					Query().
+					Where(user.EmailAddress(key)).
+					Limit(1).
+					All(dbClient.Context)
+	} else {
+		users, err = dbClient.Client.User.
+					Query().
+					Where(user.UUID(user_id)).
+					Limit(1).
+					All(dbClient.Context)
+	}
 
 	if err != nil { return nil, err }
 
@@ -60,7 +71,7 @@ func (u UserModel) Login(password string) (string, error) {
 	if !u.checkPasswordHash(password) {
 		return "", errors.New("Username and Password did not match")
 	}
-	return lib.GenerateJWT(u.user.Uuid)
+	return lib.GenerateJWT(u.user.UUID.String())
 }
 
 func hashPassword(password string) string {

@@ -6,6 +6,13 @@ import (
   	"github.com/gin-gonic/gin"
 )
 
+/*
+
+	Login
+
+	curl -XPOST localhost:8080/api/v1/login -d '{"email": "abc@google.com", "password":"test"}'
+
+*/
 type authenticateLoginInput struct {
 	Email string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
@@ -30,6 +37,14 @@ func AuthenticateLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 200, "token": token })
 }
 
+/*
+
+	Register
+
+	curl -XPOST localhost:8080/api/v1/register -d '{"email": "abc@google.com", "username":"abc","password":"test"}'
+
+*/
+
 type authenticateRegisterInput struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
@@ -49,6 +64,14 @@ func AuthenticateRegister(c *gin.Context) {
 	}
 	c.IndentedJSON(http.StatusCreated, gin.H{"code": http.StatusCreated, "user": user.Marshal()})
 }
+
+
+/* 
+
+	Logout 
+
+
+*/
 
 type AuthenticateLogoutInput struct {
 	// Username string `json:"username" binding:"required"`

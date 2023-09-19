@@ -1,13 +1,14 @@
 package middleware
 
 import (
+	"strings"
 	"net/http"
 	"github.com/gin-gonic/gin"
 	"backend/src/lib"
 )
 
 // Extracts the token headers
-func extractToken(c *gin.Context) string {
+func ExtractToken(c *gin.Context) string {
 	token := c.Query("token")
 	if token != "" {
 		return token
@@ -23,7 +24,7 @@ func extractToken(c *gin.Context) string {
 // Verifies if the token is valid
 func JwtAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !lib.IsTokenValid(extractToken(c)) {
+		if !lib.IsTokenValid(ExtractToken(c)) {
 			c.String(http.StatusUnauthorized, "Unauthorized")
 			c.Abort()
 			return
