@@ -38,3 +38,9 @@ go run -mod=mod entgo.io/ent/cmd/ent new <Model>
 ```
 go generate ./ent
 ```
+
+## Testing
+
+```
+go test ./tests/...
+```

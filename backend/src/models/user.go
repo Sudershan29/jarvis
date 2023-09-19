@@ -3,9 +3,10 @@ package models
 
 import (
 	"time"
+	"errors"
 	"backend/ent"
-	// "encoding/json"
 	"backend/src/lib"
+	"backend/ent/user"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -19,7 +20,7 @@ type UserJSON struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func UserCreate(name, password, email string) UserModel {
+func UserCreate(name, password, email string) (*UserModel, error) {
 	dbClient := lib.DbCtx
 	u, err := dbClient.Client.User.
 				Create().
@@ -28,11 +29,38 @@ func UserCreate(name, password, email string) UserModel {
 				SetEmailAddress(email).
 				Save(dbClient.Context)
 
-	user := UserModel{u}
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return user
+	user := UserModel{u}
+	return &user, nil
+}
+
+func UserFind(email string) (*UserModel, error) {
+	dbClient := lib.DbCtx
+	users, err := dbClient.Client.User.
+				Query().
+				Where(user.EmailAddress(email)).
+				Limit(1).
+				All(dbClient.Context)
+
+	if err != nil { return nil, err }
+
+	// Return 404
+	if len(users) == 0 { return nil, errors.New("User Not Found") }
+
+	// Finding first
+	var user UserModel
+	for _, u := range users { user = UserModel{u}; break; }
+
+	return &user, nil
+}
+
+func (u UserModel) Login(password string) (string, error) {
+	if !u.checkPasswordHash(password) {
+		return "", errors.New("Username and Password did not match")
+	}
+	return lib.GenerateJWT(u.user.Uuid)
 }
 
 func hashPassword(password string) string {
@@ -40,8 +68,8 @@ func hashPassword(password string) string {
     return string(bytes)
 }
 
-func (u UserModel) checkPasswordHash(hash string) bool {
-    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(u.user.Password))
+func (u UserModel) checkPasswordHash(password string) bool {
+    err := bcrypt.CompareHashAndPassword([]byte(u.user.Password), []byte(password))
     return err == nil
 }
 
