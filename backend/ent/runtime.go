@@ -29,15 +29,15 @@ func init() {
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[2].Descriptor()
+	userDescCreatedAt := userFields[3].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
 	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
 	// userDescUUID is the schema descriptor for uuid field.
-	userDescUUID := userFields[3].Descriptor()
+	userDescUUID := userFields[4].Descriptor()
 	// user.DefaultUUID holds the default value on creation for the uuid field.
 	user.DefaultUUID = userDescUUID.Default.(func() uuid.UUID)
 	// userDescPremium is the schema descriptor for premium field.
-	userDescPremium := userFields[4].Descriptor()
+	userDescPremium := userFields[5].Descriptor()
 	// user.DefaultPremium holds the default value on creation for the premium field.
 	user.DefaultPremium = userDescPremium.Default.(bool)
 	userskillFields := schema.UserSkill{}.Fields()

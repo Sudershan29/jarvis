@@ -15,6 +15,8 @@ services:
       - DATABASE_HOST=peachtree-database-1
       - DATABASE_NAME=peachtree_development
 
+      - JWT_KEY=byebye
+
     depends_on:
       - database
 
@@ -37,9 +39,9 @@ services:
       dockerfile: ./frontend/Dockerfile
     ports:
       - '8081:8081'
-      - '19006:19006'
       - '19001:19001'
       - '19002:19002'
+      - '19006:19006'
     environment:
       - NODE_ENV=development
       - PORT=8081
@@ -49,7 +51,7 @@ services:
       - backend
     
     volumes:
-      - ./frontend:/opt/frontend/app/
+      - ./frontend:/app
 
 volumes:
   peachtree-database-data:

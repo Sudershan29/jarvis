@@ -20,6 +20,8 @@ func (User) Fields() []ent.Field {
         field.String("name"),
         field.String("email_address").
             Unique(),
+        field.String("password").
+            Sensitive(),
 		field.Time("created_at").
             Default(time.Now),
 		field.UUID("uuid", uuid.UUID{}).

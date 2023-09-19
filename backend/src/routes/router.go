@@ -1,14 +1,11 @@
 package routes
 
 import (
-	"net/http"
 	"github.com/gin-gonic/gin"
 )
 
-type APIRouter struct {
-	router *gin.Engine
-}
+func CreateRouter(c *gin.Engine) {
+	apiGroup := c.Group("/api/v1")
 
-func CreateRouter() *APIRouter {
-	router := gin.Default()
+	AuthenticateRoute(apiGroup)
 }
