@@ -6,6 +6,8 @@ import (
 )
 
 func CreateRouter(c *gin.Engine) {
+	middleware.SetCors(c)
+
 	// Auth
 	apiGroup := c.Group("/api/v1")
 	AuthenticateRoute(apiGroup)
