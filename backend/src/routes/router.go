@@ -1,14 +1,17 @@
 package routes
 
 import (
-	"net/http"
+	"backend/src/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-type APIRouter struct {
-	router *gin.Engine
-}
+func CreateRouter(c *gin.Engine) {
+	// Auth
+	apiGroup := c.Group("/api/v1")
+	AuthenticateRoute(apiGroup)
 
-func CreateRouter() *APIRouter {
-	router := gin.Default()
+	// User
+	userGroup := c.Group("/api/v1/users")
+	userGroup.Use(middleware.JwtAuthMiddleware())
+	UserRoute(userGroup)
 }

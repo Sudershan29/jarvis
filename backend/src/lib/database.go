@@ -13,8 +13,8 @@ import  (
 )
 
 type dbContext struct {
-	client *ent.Client
-	context context.Context
+	Client *ent.Client
+	Context context.Context
 }
 
 func NewDbContext(c *ent.Client, ctx context.Context) *dbContext{
@@ -46,7 +46,6 @@ func runMigrations() *dbContext{
                                 helper.GetEnv("DATABASE_NAME"))
 
   client := databaseOpen(database_url)
-  defer client.Close()
   ctx := context.Background()
   err := client.Schema.Create(
       ctx,
@@ -61,7 +60,10 @@ func runMigrations() *dbContext{
 
 var DbCtx *dbContext
 
-// TODO: Ensure this runs first
 func init() {
 	DbCtx = runMigrations()
+}
+
+func CloseDBConnection() {
+  DbCtx.Client.Close()
 }

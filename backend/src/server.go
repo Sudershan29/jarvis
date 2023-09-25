@@ -1,19 +1,16 @@
 package main
 
 import (
-  "net/http"
   "backend/src/lib"
+  "backend/src/routes"
   "github.com/gin-gonic/gin"
 )
 
 func main() {
+  // The database is initialized by init() function in backend/src/lib
+  defer lib.CloseDBConnection()
   r := gin.Default()
   lib.ReplaceLogger(r)
-
-  r.GET("/ping", func(c *gin.Context) {
-    c.JSON(http.StatusOK, gin.H{
-      "message": "pong",
-    })
-  })
+  routes.CreateRouter(r)
   r.Run()
 }
