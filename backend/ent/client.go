@@ -14,7 +14,6 @@ import (
 	"backend/ent/preference"
 	"backend/ent/skill"
 	"backend/ent/user"
-	"backend/ent/userskill"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
@@ -35,8 +34,6 @@ type Client struct {
 	Skill *SkillClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
-	// UserSkill is the client for interacting with the UserSkill builders.
-	UserSkill *UserSkillClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -54,7 +51,6 @@ func (c *Client) init() {
 	c.Preference = NewPreferenceClient(c.config)
 	c.Skill = NewSkillClient(c.config)
 	c.User = NewUserClient(c.config)
-	c.UserSkill = NewUserSkillClient(c.config)
 }
 
 type (
@@ -141,7 +137,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Preference: NewPreferenceClient(cfg),
 		Skill:      NewSkillClient(cfg),
 		User:       NewUserClient(cfg),
-		UserSkill:  NewUserSkillClient(cfg),
 	}, nil
 }
 
@@ -165,7 +160,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Preference: NewPreferenceClient(cfg),
 		Skill:      NewSkillClient(cfg),
 		User:       NewUserClient(cfg),
-		UserSkill:  NewUserSkillClient(cfg),
 	}, nil
 }
 
@@ -198,7 +192,6 @@ func (c *Client) Use(hooks ...Hook) {
 	c.Preference.Use(hooks...)
 	c.Skill.Use(hooks...)
 	c.User.Use(hooks...)
-	c.UserSkill.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
@@ -208,7 +201,6 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.Preference.Intercept(interceptors...)
 	c.Skill.Intercept(interceptors...)
 	c.User.Intercept(interceptors...)
-	c.UserSkill.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -222,8 +214,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Skill.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
-	case *UserSkillMutation:
-		return c.UserSkill.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -331,6 +321,22 @@ func (c *CategoryClient) QuerySkills(ca *Category) *SkillQuery {
 			sqlgraph.From(category.Table, category.FieldID, id),
 			sqlgraph.To(skill.Table, skill.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, category.SkillsTable, category.SkillsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a Category.
+func (c *CategoryClient) QueryUser(ca *Category) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ca.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, category.UserTable, category.UserColumn),
 		)
 		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
 		return fromV, nil
@@ -606,15 +612,15 @@ func (c *SkillClient) QueryCategories(s *Skill) *CategoryQuery {
 	return query
 }
 
-// QueryUserskills queries the userskills edge of a Skill.
-func (c *SkillClient) QueryUserskills(s *Skill) *UserSkillQuery {
-	query := (&UserSkillClient{config: c.config}).Query()
+// QueryUser queries the user edge of a Skill.
+func (c *SkillClient) QueryUser(s *Skill) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := s.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(skill.Table, skill.FieldID, id),
-			sqlgraph.To(userskill.Table, userskill.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, skill.UserskillsTable, skill.UserskillsColumn),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, skill.UserTable, skill.UserColumn),
 		)
 		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
 		return fromV, nil
@@ -741,14 +747,30 @@ func (c *UserClient) GetX(ctx context.Context, id int) *User {
 }
 
 // QuerySkills queries the skills edge of a User.
-func (c *UserClient) QuerySkills(u *User) *UserSkillQuery {
-	query := (&UserSkillClient{config: c.config}).Query()
+func (c *UserClient) QuerySkills(u *User) *SkillQuery {
+	query := (&SkillClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := u.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
-			sqlgraph.To(userskill.Table, userskill.FieldID),
+			sqlgraph.To(skill.Table, skill.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.SkillsTable, user.SkillsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCategories queries the categories edge of a User.
+func (c *UserClient) QueryCategories(u *User) *CategoryQuery {
+	query := (&CategoryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(category.Table, category.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.CategoriesTable, user.CategoriesColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -797,162 +819,12 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
-// UserSkillClient is a client for the UserSkill schema.
-type UserSkillClient struct {
-	config
-}
-
-// NewUserSkillClient returns a client for the UserSkill from the given config.
-func NewUserSkillClient(c config) *UserSkillClient {
-	return &UserSkillClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `userskill.Hooks(f(g(h())))`.
-func (c *UserSkillClient) Use(hooks ...Hook) {
-	c.hooks.UserSkill = append(c.hooks.UserSkill, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `userskill.Intercept(f(g(h())))`.
-func (c *UserSkillClient) Intercept(interceptors ...Interceptor) {
-	c.inters.UserSkill = append(c.inters.UserSkill, interceptors...)
-}
-
-// Create returns a builder for creating a UserSkill entity.
-func (c *UserSkillClient) Create() *UserSkillCreate {
-	mutation := newUserSkillMutation(c.config, OpCreate)
-	return &UserSkillCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of UserSkill entities.
-func (c *UserSkillClient) CreateBulk(builders ...*UserSkillCreate) *UserSkillCreateBulk {
-	return &UserSkillCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for UserSkill.
-func (c *UserSkillClient) Update() *UserSkillUpdate {
-	mutation := newUserSkillMutation(c.config, OpUpdate)
-	return &UserSkillUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *UserSkillClient) UpdateOne(us *UserSkill) *UserSkillUpdateOne {
-	mutation := newUserSkillMutation(c.config, OpUpdateOne, withUserSkill(us))
-	return &UserSkillUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *UserSkillClient) UpdateOneID(id int) *UserSkillUpdateOne {
-	mutation := newUserSkillMutation(c.config, OpUpdateOne, withUserSkillID(id))
-	return &UserSkillUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for UserSkill.
-func (c *UserSkillClient) Delete() *UserSkillDelete {
-	mutation := newUserSkillMutation(c.config, OpDelete)
-	return &UserSkillDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *UserSkillClient) DeleteOne(us *UserSkill) *UserSkillDeleteOne {
-	return c.DeleteOneID(us.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *UserSkillClient) DeleteOneID(id int) *UserSkillDeleteOne {
-	builder := c.Delete().Where(userskill.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &UserSkillDeleteOne{builder}
-}
-
-// Query returns a query builder for UserSkill.
-func (c *UserSkillClient) Query() *UserSkillQuery {
-	return &UserSkillQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeUserSkill},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a UserSkill entity by its id.
-func (c *UserSkillClient) Get(ctx context.Context, id int) (*UserSkill, error) {
-	return c.Query().Where(userskill.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *UserSkillClient) GetX(ctx context.Context, id int) *UserSkill {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryUser queries the user edge of a UserSkill.
-func (c *UserSkillClient) QueryUser(us *UserSkill) *UserQuery {
-	query := (&UserClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := us.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(userskill.Table, userskill.FieldID, id),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, userskill.UserTable, userskill.UserColumn),
-		)
-		fromV = sqlgraph.Neighbors(us.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QuerySkill queries the skill edge of a UserSkill.
-func (c *UserSkillClient) QuerySkill(us *UserSkill) *SkillQuery {
-	query := (&SkillClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := us.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(userskill.Table, userskill.FieldID, id),
-			sqlgraph.To(skill.Table, skill.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, userskill.SkillTable, userskill.SkillColumn),
-		)
-		fromV = sqlgraph.Neighbors(us.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *UserSkillClient) Hooks() []Hook {
-	return c.hooks.UserSkill
-}
-
-// Interceptors returns the client interceptors.
-func (c *UserSkillClient) Interceptors() []Interceptor {
-	return c.inters.UserSkill
-}
-
-func (c *UserSkillClient) mutate(ctx context.Context, m *UserSkillMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&UserSkillCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&UserSkillUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&UserSkillUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&UserSkillDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown UserSkill mutation op: %q", m.Op())
-	}
-}
-
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Category, Preference, Skill, User, UserSkill []ent.Hook
+		Category, Preference, Skill, User []ent.Hook
 	}
 	inters struct {
-		Category, Preference, Skill, User, UserSkill []ent.Interceptor
+		Category, Preference, Skill, User []ent.Interceptor
 	}
 )

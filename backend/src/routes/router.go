@@ -14,4 +14,9 @@ func CreateRouter(c *gin.Engine) {
 	userGroup := c.Group("/api/v1/users")
 	userGroup.Use(middleware.JwtAuthMiddleware())
 	UserRoute(userGroup)
+
+	// Skill
+	skillGroup := c.Group("/api/v1/skills")
+	skillGroup.Use(middleware.JwtAuthMiddleware())
+	SkillRoute(skillGroup)
 }

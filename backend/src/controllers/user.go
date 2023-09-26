@@ -8,11 +8,10 @@ import (
   	"github.com/gin-gonic/gin"
 )
 
-func CurrentUser(c *gin.Context) *models.UserModel {
+func CurrentUser(c *gin.Context) *models.JwtUser {
 	token 	:= middleware.ExtractToken(c)
 	user_id := lib.GetUser(token)
-	user, _ := models.UserFind(user_id)
-	return user
+	return models.NewJwtUser(user_id)
 }
 
 /*
@@ -25,5 +24,6 @@ func CurrentUser(c *gin.Context) *models.UserModel {
 
 func UserProfile(c *gin.Context) {
 	user := CurrentUser(c)
-	c.JSON(http.StatusOK, gin.H{"code": 200, "user": user.Marshal()})
+	user.Load()
+	c.JSON(http.StatusOK, gin.H{"code": 200, "user": user.Model.Marshal()})
 }

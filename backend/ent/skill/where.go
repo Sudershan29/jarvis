@@ -4,6 +4,7 @@ package skill
 
 import (
 	"backend/ent/predicate"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -55,18 +56,278 @@ func IDLTE(id int) predicate.Skill {
 }
 
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
-func Name(v bool) predicate.Skill {
+func Name(v string) predicate.Skill {
 	return predicate.Skill(sql.FieldEQ(FieldName, v))
 }
 
+// Level applies equality check predicate on the "level" field. It's identical to LevelEQ.
+func Level(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldEQ(FieldLevel, v))
+}
+
+// Progress applies equality check predicate on the "progress" field. It's identical to ProgressEQ.
+func Progress(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldEQ(FieldProgress, v))
+}
+
+// Duration applies equality check predicate on the "duration" field. It's identical to DurationEQ.
+func Duration(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldEQ(FieldDuration, v))
+}
+
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.Skill {
+	return predicate.Skill(sql.FieldEQ(FieldCreatedAt, v))
+}
+
 // NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v bool) predicate.Skill {
+func NameEQ(v string) predicate.Skill {
 	return predicate.Skill(sql.FieldEQ(FieldName, v))
 }
 
 // NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v bool) predicate.Skill {
+func NameNEQ(v string) predicate.Skill {
 	return predicate.Skill(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.Skill {
+	return predicate.Skill(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.Skill {
+	return predicate.Skill(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldContainsFold(FieldName, v))
+}
+
+// LevelEQ applies the EQ predicate on the "level" field.
+func LevelEQ(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldEQ(FieldLevel, v))
+}
+
+// LevelNEQ applies the NEQ predicate on the "level" field.
+func LevelNEQ(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldNEQ(FieldLevel, v))
+}
+
+// LevelIn applies the In predicate on the "level" field.
+func LevelIn(vs ...string) predicate.Skill {
+	return predicate.Skill(sql.FieldIn(FieldLevel, vs...))
+}
+
+// LevelNotIn applies the NotIn predicate on the "level" field.
+func LevelNotIn(vs ...string) predicate.Skill {
+	return predicate.Skill(sql.FieldNotIn(FieldLevel, vs...))
+}
+
+// LevelGT applies the GT predicate on the "level" field.
+func LevelGT(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldGT(FieldLevel, v))
+}
+
+// LevelGTE applies the GTE predicate on the "level" field.
+func LevelGTE(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldGTE(FieldLevel, v))
+}
+
+// LevelLT applies the LT predicate on the "level" field.
+func LevelLT(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldLT(FieldLevel, v))
+}
+
+// LevelLTE applies the LTE predicate on the "level" field.
+func LevelLTE(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldLTE(FieldLevel, v))
+}
+
+// LevelContains applies the Contains predicate on the "level" field.
+func LevelContains(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldContains(FieldLevel, v))
+}
+
+// LevelHasPrefix applies the HasPrefix predicate on the "level" field.
+func LevelHasPrefix(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldHasPrefix(FieldLevel, v))
+}
+
+// LevelHasSuffix applies the HasSuffix predicate on the "level" field.
+func LevelHasSuffix(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldHasSuffix(FieldLevel, v))
+}
+
+// LevelEqualFold applies the EqualFold predicate on the "level" field.
+func LevelEqualFold(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldEqualFold(FieldLevel, v))
+}
+
+// LevelContainsFold applies the ContainsFold predicate on the "level" field.
+func LevelContainsFold(v string) predicate.Skill {
+	return predicate.Skill(sql.FieldContainsFold(FieldLevel, v))
+}
+
+// ProgressEQ applies the EQ predicate on the "progress" field.
+func ProgressEQ(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldEQ(FieldProgress, v))
+}
+
+// ProgressNEQ applies the NEQ predicate on the "progress" field.
+func ProgressNEQ(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldNEQ(FieldProgress, v))
+}
+
+// ProgressIn applies the In predicate on the "progress" field.
+func ProgressIn(vs ...int) predicate.Skill {
+	return predicate.Skill(sql.FieldIn(FieldProgress, vs...))
+}
+
+// ProgressNotIn applies the NotIn predicate on the "progress" field.
+func ProgressNotIn(vs ...int) predicate.Skill {
+	return predicate.Skill(sql.FieldNotIn(FieldProgress, vs...))
+}
+
+// ProgressGT applies the GT predicate on the "progress" field.
+func ProgressGT(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldGT(FieldProgress, v))
+}
+
+// ProgressGTE applies the GTE predicate on the "progress" field.
+func ProgressGTE(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldGTE(FieldProgress, v))
+}
+
+// ProgressLT applies the LT predicate on the "progress" field.
+func ProgressLT(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldLT(FieldProgress, v))
+}
+
+// ProgressLTE applies the LTE predicate on the "progress" field.
+func ProgressLTE(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldLTE(FieldProgress, v))
+}
+
+// DurationEQ applies the EQ predicate on the "duration" field.
+func DurationEQ(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldEQ(FieldDuration, v))
+}
+
+// DurationNEQ applies the NEQ predicate on the "duration" field.
+func DurationNEQ(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldNEQ(FieldDuration, v))
+}
+
+// DurationIn applies the In predicate on the "duration" field.
+func DurationIn(vs ...int) predicate.Skill {
+	return predicate.Skill(sql.FieldIn(FieldDuration, vs...))
+}
+
+// DurationNotIn applies the NotIn predicate on the "duration" field.
+func DurationNotIn(vs ...int) predicate.Skill {
+	return predicate.Skill(sql.FieldNotIn(FieldDuration, vs...))
+}
+
+// DurationGT applies the GT predicate on the "duration" field.
+func DurationGT(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldGT(FieldDuration, v))
+}
+
+// DurationGTE applies the GTE predicate on the "duration" field.
+func DurationGTE(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldGTE(FieldDuration, v))
+}
+
+// DurationLT applies the LT predicate on the "duration" field.
+func DurationLT(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldLT(FieldDuration, v))
+}
+
+// DurationLTE applies the LTE predicate on the "duration" field.
+func DurationLTE(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldLTE(FieldDuration, v))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.Skill {
+	return predicate.Skill(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.Skill {
+	return predicate.Skill(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.Skill {
+	return predicate.Skill(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.Skill {
+	return predicate.Skill(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.Skill {
+	return predicate.Skill(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.Skill {
+	return predicate.Skill(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.Skill {
+	return predicate.Skill(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.Skill {
+	return predicate.Skill(sql.FieldLTE(FieldCreatedAt, v))
 }
 
 // HasCategories applies the HasEdge predicate on the "categories" edge.
@@ -92,21 +353,21 @@ func HasCategoriesWith(preds ...predicate.Category) predicate.Skill {
 	})
 }
 
-// HasUserskills applies the HasEdge predicate on the "userskills" edge.
-func HasUserskills() predicate.Skill {
+// HasUser applies the HasEdge predicate on the "user" edge.
+func HasUser() predicate.Skill {
 	return predicate.Skill(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, UserskillsTable, UserskillsColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasUserskillsWith applies the HasEdge predicate on the "userskills" edge with a given conditions (other predicates).
-func HasUserskillsWith(preds ...predicate.UserSkill) predicate.Skill {
+// HasUserWith applies the HasEdge predicate on the "user" edge with a given conditions (other predicates).
+func HasUserWith(preds ...predicate.User) predicate.Skill {
 	return predicate.Skill(func(s *sql.Selector) {
-		step := newUserskillsStep()
+		step := newUserStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

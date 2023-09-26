@@ -7,7 +7,6 @@ import (
 	"backend/ent/preference"
 	"backend/ent/skill"
 	"backend/ent/user"
-	"backend/ent/userskill"
 	"context"
 	"errors"
 	"fmt"
@@ -81,7 +80,6 @@ func checkColumn(table, column string) error {
 			preference.Table: preference.ValidColumn,
 			skill.Table:      skill.ValidColumn,
 			user.Table:       user.ValidColumn,
-			userskill.Table:  userskill.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

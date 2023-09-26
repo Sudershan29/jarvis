@@ -6,6 +6,7 @@ import (
 	"backend/ent/category"
 	"backend/ent/predicate"
 	"backend/ent/skill"
+	"backend/ent/user"
 	"context"
 	"errors"
 	"fmt"
@@ -29,8 +30,8 @@ func (cu *CategoryUpdate) Where(ps ...predicate.Category) *CategoryUpdate {
 }
 
 // SetName sets the "name" field.
-func (cu *CategoryUpdate) SetName(b bool) *CategoryUpdate {
-	cu.mutation.SetName(b)
+func (cu *CategoryUpdate) SetName(s string) *CategoryUpdate {
+	cu.mutation.SetName(s)
 	return cu
 }
 
@@ -47,6 +48,25 @@ func (cu *CategoryUpdate) AddSkills(s ...*Skill) *CategoryUpdate {
 		ids[i] = s[i].ID
 	}
 	return cu.AddSkillIDs(ids...)
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (cu *CategoryUpdate) SetUserID(id int) *CategoryUpdate {
+	cu.mutation.SetUserID(id)
+	return cu
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (cu *CategoryUpdate) SetNillableUserID(id *int) *CategoryUpdate {
+	if id != nil {
+		cu = cu.SetUserID(*id)
+	}
+	return cu
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (cu *CategoryUpdate) SetUser(u *User) *CategoryUpdate {
+	return cu.SetUserID(u.ID)
 }
 
 // Mutation returns the CategoryMutation object of the builder.
@@ -73,6 +93,12 @@ func (cu *CategoryUpdate) RemoveSkills(s ...*Skill) *CategoryUpdate {
 		ids[i] = s[i].ID
 	}
 	return cu.RemoveSkillIDs(ids...)
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (cu *CategoryUpdate) ClearUser() *CategoryUpdate {
+	cu.mutation.ClearUser()
+	return cu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -112,7 +138,7 @@ func (cu *CategoryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 	}
 	if value, ok := cu.mutation.Name(); ok {
-		_spec.SetField(category.FieldName, field.TypeBool, value)
+		_spec.SetField(category.FieldName, field.TypeString, value)
 	}
 	if cu.mutation.SkillsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -159,6 +185,35 @@ func (cu *CategoryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if cu.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   category.UserTable,
+			Columns: []string{category.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   category.UserTable,
+			Columns: []string{category.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, cu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{category.Label}
@@ -180,8 +235,8 @@ type CategoryUpdateOne struct {
 }
 
 // SetName sets the "name" field.
-func (cuo *CategoryUpdateOne) SetName(b bool) *CategoryUpdateOne {
-	cuo.mutation.SetName(b)
+func (cuo *CategoryUpdateOne) SetName(s string) *CategoryUpdateOne {
+	cuo.mutation.SetName(s)
 	return cuo
 }
 
@@ -198,6 +253,25 @@ func (cuo *CategoryUpdateOne) AddSkills(s ...*Skill) *CategoryUpdateOne {
 		ids[i] = s[i].ID
 	}
 	return cuo.AddSkillIDs(ids...)
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (cuo *CategoryUpdateOne) SetUserID(id int) *CategoryUpdateOne {
+	cuo.mutation.SetUserID(id)
+	return cuo
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (cuo *CategoryUpdateOne) SetNillableUserID(id *int) *CategoryUpdateOne {
+	if id != nil {
+		cuo = cuo.SetUserID(*id)
+	}
+	return cuo
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (cuo *CategoryUpdateOne) SetUser(u *User) *CategoryUpdateOne {
+	return cuo.SetUserID(u.ID)
 }
 
 // Mutation returns the CategoryMutation object of the builder.
@@ -224,6 +298,12 @@ func (cuo *CategoryUpdateOne) RemoveSkills(s ...*Skill) *CategoryUpdateOne {
 		ids[i] = s[i].ID
 	}
 	return cuo.RemoveSkillIDs(ids...)
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (cuo *CategoryUpdateOne) ClearUser() *CategoryUpdateOne {
+	cuo.mutation.ClearUser()
+	return cuo
 }
 
 // Where appends a list predicates to the CategoryUpdate builder.
@@ -293,7 +373,7 @@ func (cuo *CategoryUpdateOne) sqlSave(ctx context.Context) (_node *Category, err
 		}
 	}
 	if value, ok := cuo.mutation.Name(); ok {
-		_spec.SetField(category.FieldName, field.TypeBool, value)
+		_spec.SetField(category.FieldName, field.TypeString, value)
 	}
 	if cuo.mutation.SkillsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -333,6 +413,35 @@ func (cuo *CategoryUpdateOne) sqlSave(ctx context.Context) (_node *Category, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   category.UserTable,
+			Columns: []string{category.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   category.UserTable,
+			Columns: []string{category.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

@@ -3,6 +3,8 @@
 package skill
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 )
@@ -14,10 +16,18 @@ const (
 	FieldID = "id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldLevel holds the string denoting the level field in the database.
+	FieldLevel = "level"
+	// FieldProgress holds the string denoting the progress field in the database.
+	FieldProgress = "progress"
+	// FieldDuration holds the string denoting the duration field in the database.
+	FieldDuration = "duration"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
 	// EdgeCategories holds the string denoting the categories edge name in mutations.
 	EdgeCategories = "categories"
-	// EdgeUserskills holds the string denoting the userskills edge name in mutations.
-	EdgeUserskills = "userskills"
+	// EdgeUser holds the string denoting the user edge name in mutations.
+	EdgeUser = "user"
 	// Table holds the table name of the skill in the database.
 	Table = "skills"
 	// CategoriesTable is the table that holds the categories relation/edge. The primary key declared below.
@@ -25,19 +35,29 @@ const (
 	// CategoriesInverseTable is the table name for the Category entity.
 	// It exists in this package in order to avoid circular dependency with the "category" package.
 	CategoriesInverseTable = "categories"
-	// UserskillsTable is the table that holds the userskills relation/edge.
-	UserskillsTable = "user_skills"
-	// UserskillsInverseTable is the table name for the UserSkill entity.
-	// It exists in this package in order to avoid circular dependency with the "userskill" package.
-	UserskillsInverseTable = "user_skills"
-	// UserskillsColumn is the table column denoting the userskills relation/edge.
-	UserskillsColumn = "skill_userskills"
+	// UserTable is the table that holds the user relation/edge.
+	UserTable = "skills"
+	// UserInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	UserInverseTable = "users"
+	// UserColumn is the table column denoting the user relation/edge.
+	UserColumn = "user_skills"
 )
 
 // Columns holds all SQL columns for skill fields.
 var Columns = []string{
 	FieldID,
 	FieldName,
+	FieldLevel,
+	FieldProgress,
+	FieldDuration,
+	FieldCreatedAt,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "skills"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"user_skills",
 }
 
 var (
@@ -53,8 +73,22 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
+			return true
+		}
+	}
 	return false
 }
+
+var (
+	// DefaultProgress holds the default value on creation for the "progress" field.
+	DefaultProgress int
+	// DefaultDuration holds the default value on creation for the "duration" field.
+	DefaultDuration int
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+)
 
 // OrderOption defines the ordering options for the Skill queries.
 type OrderOption func(*sql.Selector)
@@ -67,6 +101,26 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByLevel orders the results by the level field.
+func ByLevel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLevel, opts...).ToFunc()
+}
+
+// ByProgress orders the results by the progress field.
+func ByProgress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProgress, opts...).ToFunc()
+}
+
+// ByDuration orders the results by the duration field.
+func ByDuration(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDuration, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
 }
 
 // ByCategoriesCount orders the results by categories count.
@@ -83,17 +137,10 @@ func ByCategories(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByUserskillsCount orders the results by userskills count.
-func ByUserskillsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByUserField orders the results by user field.
+func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newUserskillsStep(), opts...)
-	}
-}
-
-// ByUserskills orders the results by userskills terms.
-func ByUserskills(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newUserskillsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newUserStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newCategoriesStep() *sqlgraph.Step {
@@ -103,10 +150,10 @@ func newCategoriesStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2M, true, CategoriesTable, CategoriesPrimaryKey...),
 	)
 }
-func newUserskillsStep() *sqlgraph.Step {
+func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(UserskillsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, UserskillsTable, UserskillsColumn),
+		sqlgraph.To(UserInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
 	)
 }

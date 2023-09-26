@@ -3,10 +3,11 @@
 package ent
 
 import (
+	"backend/ent/category"
 	"backend/ent/predicate"
 	"backend/ent/preference"
+	"backend/ent/skill"
 	"backend/ent/user"
-	"backend/ent/userskill"
 	"context"
 	"errors"
 	"fmt"
@@ -91,19 +92,34 @@ func (uu *UserUpdate) SetNillablePremium(b *bool) *UserUpdate {
 	return uu
 }
 
-// AddSkillIDs adds the "skills" edge to the UserSkill entity by IDs.
+// AddSkillIDs adds the "skills" edge to the Skill entity by IDs.
 func (uu *UserUpdate) AddSkillIDs(ids ...int) *UserUpdate {
 	uu.mutation.AddSkillIDs(ids...)
 	return uu
 }
 
-// AddSkills adds the "skills" edges to the UserSkill entity.
-func (uu *UserUpdate) AddSkills(u ...*UserSkill) *UserUpdate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// AddSkills adds the "skills" edges to the Skill entity.
+func (uu *UserUpdate) AddSkills(s ...*Skill) *UserUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
 	}
 	return uu.AddSkillIDs(ids...)
+}
+
+// AddCategoryIDs adds the "categories" edge to the Category entity by IDs.
+func (uu *UserUpdate) AddCategoryIDs(ids ...int) *UserUpdate {
+	uu.mutation.AddCategoryIDs(ids...)
+	return uu
+}
+
+// AddCategories adds the "categories" edges to the Category entity.
+func (uu *UserUpdate) AddCategories(c ...*Category) *UserUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.AddCategoryIDs(ids...)
 }
 
 // SetPreferenceID sets the "preference" edge to the Preference entity by ID.
@@ -130,25 +146,46 @@ func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
 }
 
-// ClearSkills clears all "skills" edges to the UserSkill entity.
+// ClearSkills clears all "skills" edges to the Skill entity.
 func (uu *UserUpdate) ClearSkills() *UserUpdate {
 	uu.mutation.ClearSkills()
 	return uu
 }
 
-// RemoveSkillIDs removes the "skills" edge to UserSkill entities by IDs.
+// RemoveSkillIDs removes the "skills" edge to Skill entities by IDs.
 func (uu *UserUpdate) RemoveSkillIDs(ids ...int) *UserUpdate {
 	uu.mutation.RemoveSkillIDs(ids...)
 	return uu
 }
 
-// RemoveSkills removes "skills" edges to UserSkill entities.
-func (uu *UserUpdate) RemoveSkills(u ...*UserSkill) *UserUpdate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// RemoveSkills removes "skills" edges to Skill entities.
+func (uu *UserUpdate) RemoveSkills(s ...*Skill) *UserUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
 	}
 	return uu.RemoveSkillIDs(ids...)
+}
+
+// ClearCategories clears all "categories" edges to the Category entity.
+func (uu *UserUpdate) ClearCategories() *UserUpdate {
+	uu.mutation.ClearCategories()
+	return uu
+}
+
+// RemoveCategoryIDs removes the "categories" edge to Category entities by IDs.
+func (uu *UserUpdate) RemoveCategoryIDs(ids ...int) *UserUpdate {
+	uu.mutation.RemoveCategoryIDs(ids...)
+	return uu
+}
+
+// RemoveCategories removes "categories" edges to Category entities.
+func (uu *UserUpdate) RemoveCategories(c ...*Category) *UserUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.RemoveCategoryIDs(ids...)
 }
 
 // ClearPreference clears the "preference" edge to the Preference entity.
@@ -219,7 +256,7 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{user.SkillsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -232,7 +269,7 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{user.SkillsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -248,7 +285,52 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{user.SkillsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.CategoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CategoriesTable,
+			Columns: []string{user.CategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedCategoriesIDs(); len(nodes) > 0 && !uu.mutation.CategoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CategoriesTable,
+			Columns: []string{user.CategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.CategoriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CategoriesTable,
+			Columns: []string{user.CategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -365,19 +447,34 @@ func (uuo *UserUpdateOne) SetNillablePremium(b *bool) *UserUpdateOne {
 	return uuo
 }
 
-// AddSkillIDs adds the "skills" edge to the UserSkill entity by IDs.
+// AddSkillIDs adds the "skills" edge to the Skill entity by IDs.
 func (uuo *UserUpdateOne) AddSkillIDs(ids ...int) *UserUpdateOne {
 	uuo.mutation.AddSkillIDs(ids...)
 	return uuo
 }
 
-// AddSkills adds the "skills" edges to the UserSkill entity.
-func (uuo *UserUpdateOne) AddSkills(u ...*UserSkill) *UserUpdateOne {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// AddSkills adds the "skills" edges to the Skill entity.
+func (uuo *UserUpdateOne) AddSkills(s ...*Skill) *UserUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
 	}
 	return uuo.AddSkillIDs(ids...)
+}
+
+// AddCategoryIDs adds the "categories" edge to the Category entity by IDs.
+func (uuo *UserUpdateOne) AddCategoryIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.AddCategoryIDs(ids...)
+	return uuo
+}
+
+// AddCategories adds the "categories" edges to the Category entity.
+func (uuo *UserUpdateOne) AddCategories(c ...*Category) *UserUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.AddCategoryIDs(ids...)
 }
 
 // SetPreferenceID sets the "preference" edge to the Preference entity by ID.
@@ -404,25 +501,46 @@ func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
 }
 
-// ClearSkills clears all "skills" edges to the UserSkill entity.
+// ClearSkills clears all "skills" edges to the Skill entity.
 func (uuo *UserUpdateOne) ClearSkills() *UserUpdateOne {
 	uuo.mutation.ClearSkills()
 	return uuo
 }
 
-// RemoveSkillIDs removes the "skills" edge to UserSkill entities by IDs.
+// RemoveSkillIDs removes the "skills" edge to Skill entities by IDs.
 func (uuo *UserUpdateOne) RemoveSkillIDs(ids ...int) *UserUpdateOne {
 	uuo.mutation.RemoveSkillIDs(ids...)
 	return uuo
 }
 
-// RemoveSkills removes "skills" edges to UserSkill entities.
-func (uuo *UserUpdateOne) RemoveSkills(u ...*UserSkill) *UserUpdateOne {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// RemoveSkills removes "skills" edges to Skill entities.
+func (uuo *UserUpdateOne) RemoveSkills(s ...*Skill) *UserUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
 	}
 	return uuo.RemoveSkillIDs(ids...)
+}
+
+// ClearCategories clears all "categories" edges to the Category entity.
+func (uuo *UserUpdateOne) ClearCategories() *UserUpdateOne {
+	uuo.mutation.ClearCategories()
+	return uuo
+}
+
+// RemoveCategoryIDs removes the "categories" edge to Category entities by IDs.
+func (uuo *UserUpdateOne) RemoveCategoryIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.RemoveCategoryIDs(ids...)
+	return uuo
+}
+
+// RemoveCategories removes "categories" edges to Category entities.
+func (uuo *UserUpdateOne) RemoveCategories(c ...*Category) *UserUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.RemoveCategoryIDs(ids...)
 }
 
 // ClearPreference clears the "preference" edge to the Preference entity.
@@ -523,7 +641,7 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Columns: []string{user.SkillsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -536,7 +654,7 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Columns: []string{user.SkillsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -552,7 +670,52 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Columns: []string{user.SkillsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.CategoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CategoriesTable,
+			Columns: []string{user.CategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedCategoriesIDs(); len(nodes) > 0 && !uuo.mutation.CategoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CategoriesTable,
+			Columns: []string{user.CategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.CategoriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CategoriesTable,
+			Columns: []string{user.CategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

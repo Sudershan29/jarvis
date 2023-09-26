@@ -6,10 +6,11 @@ import (
 	"backend/ent/category"
 	"backend/ent/predicate"
 	"backend/ent/skill"
-	"backend/ent/userskill"
+	"backend/ent/user"
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -30,8 +31,70 @@ func (su *SkillUpdate) Where(ps ...predicate.Skill) *SkillUpdate {
 }
 
 // SetName sets the "name" field.
-func (su *SkillUpdate) SetName(b bool) *SkillUpdate {
-	su.mutation.SetName(b)
+func (su *SkillUpdate) SetName(s string) *SkillUpdate {
+	su.mutation.SetName(s)
+	return su
+}
+
+// SetLevel sets the "level" field.
+func (su *SkillUpdate) SetLevel(s string) *SkillUpdate {
+	su.mutation.SetLevel(s)
+	return su
+}
+
+// SetProgress sets the "progress" field.
+func (su *SkillUpdate) SetProgress(i int) *SkillUpdate {
+	su.mutation.ResetProgress()
+	su.mutation.SetProgress(i)
+	return su
+}
+
+// SetNillableProgress sets the "progress" field if the given value is not nil.
+func (su *SkillUpdate) SetNillableProgress(i *int) *SkillUpdate {
+	if i != nil {
+		su.SetProgress(*i)
+	}
+	return su
+}
+
+// AddProgress adds i to the "progress" field.
+func (su *SkillUpdate) AddProgress(i int) *SkillUpdate {
+	su.mutation.AddProgress(i)
+	return su
+}
+
+// SetDuration sets the "duration" field.
+func (su *SkillUpdate) SetDuration(i int) *SkillUpdate {
+	su.mutation.ResetDuration()
+	su.mutation.SetDuration(i)
+	return su
+}
+
+// SetNillableDuration sets the "duration" field if the given value is not nil.
+func (su *SkillUpdate) SetNillableDuration(i *int) *SkillUpdate {
+	if i != nil {
+		su.SetDuration(*i)
+	}
+	return su
+}
+
+// AddDuration adds i to the "duration" field.
+func (su *SkillUpdate) AddDuration(i int) *SkillUpdate {
+	su.mutation.AddDuration(i)
+	return su
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (su *SkillUpdate) SetCreatedAt(t time.Time) *SkillUpdate {
+	su.mutation.SetCreatedAt(t)
+	return su
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (su *SkillUpdate) SetNillableCreatedAt(t *time.Time) *SkillUpdate {
+	if t != nil {
+		su.SetCreatedAt(*t)
+	}
 	return su
 }
 
@@ -50,19 +113,23 @@ func (su *SkillUpdate) AddCategories(c ...*Category) *SkillUpdate {
 	return su.AddCategoryIDs(ids...)
 }
 
-// AddUserskillIDs adds the "userskills" edge to the UserSkill entity by IDs.
-func (su *SkillUpdate) AddUserskillIDs(ids ...int) *SkillUpdate {
-	su.mutation.AddUserskillIDs(ids...)
+// SetUserID sets the "user" edge to the User entity by ID.
+func (su *SkillUpdate) SetUserID(id int) *SkillUpdate {
+	su.mutation.SetUserID(id)
 	return su
 }
 
-// AddUserskills adds the "userskills" edges to the UserSkill entity.
-func (su *SkillUpdate) AddUserskills(u ...*UserSkill) *SkillUpdate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (su *SkillUpdate) SetNillableUserID(id *int) *SkillUpdate {
+	if id != nil {
+		su = su.SetUserID(*id)
 	}
-	return su.AddUserskillIDs(ids...)
+	return su
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (su *SkillUpdate) SetUser(u *User) *SkillUpdate {
+	return su.SetUserID(u.ID)
 }
 
 // Mutation returns the SkillMutation object of the builder.
@@ -91,25 +158,10 @@ func (su *SkillUpdate) RemoveCategories(c ...*Category) *SkillUpdate {
 	return su.RemoveCategoryIDs(ids...)
 }
 
-// ClearUserskills clears all "userskills" edges to the UserSkill entity.
-func (su *SkillUpdate) ClearUserskills() *SkillUpdate {
-	su.mutation.ClearUserskills()
+// ClearUser clears the "user" edge to the User entity.
+func (su *SkillUpdate) ClearUser() *SkillUpdate {
+	su.mutation.ClearUser()
 	return su
-}
-
-// RemoveUserskillIDs removes the "userskills" edge to UserSkill entities by IDs.
-func (su *SkillUpdate) RemoveUserskillIDs(ids ...int) *SkillUpdate {
-	su.mutation.RemoveUserskillIDs(ids...)
-	return su
-}
-
-// RemoveUserskills removes "userskills" edges to UserSkill entities.
-func (su *SkillUpdate) RemoveUserskills(u ...*UserSkill) *SkillUpdate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return su.RemoveUserskillIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -149,7 +201,25 @@ func (su *SkillUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 	}
 	if value, ok := su.mutation.Name(); ok {
-		_spec.SetField(skill.FieldName, field.TypeBool, value)
+		_spec.SetField(skill.FieldName, field.TypeString, value)
+	}
+	if value, ok := su.mutation.Level(); ok {
+		_spec.SetField(skill.FieldLevel, field.TypeString, value)
+	}
+	if value, ok := su.mutation.Progress(); ok {
+		_spec.SetField(skill.FieldProgress, field.TypeInt, value)
+	}
+	if value, ok := su.mutation.AddedProgress(); ok {
+		_spec.AddField(skill.FieldProgress, field.TypeInt, value)
+	}
+	if value, ok := su.mutation.Duration(); ok {
+		_spec.SetField(skill.FieldDuration, field.TypeInt, value)
+	}
+	if value, ok := su.mutation.AddedDuration(); ok {
+		_spec.AddField(skill.FieldDuration, field.TypeInt, value)
+	}
+	if value, ok := su.mutation.CreatedAt(); ok {
+		_spec.SetField(skill.FieldCreatedAt, field.TypeTime, value)
 	}
 	if su.mutation.CategoriesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -196,44 +266,28 @@ func (su *SkillUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if su.mutation.UserskillsCleared() {
+	if su.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   skill.UserskillsTable,
-			Columns: []string{skill.UserskillsColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   skill.UserTable,
+			Columns: []string{skill.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := su.mutation.RemovedUserskillsIDs(); len(nodes) > 0 && !su.mutation.UserskillsCleared() {
+	if nodes := su.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   skill.UserskillsTable,
-			Columns: []string{skill.UserskillsColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   skill.UserTable,
+			Columns: []string{skill.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := su.mutation.UserskillsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   skill.UserskillsTable,
-			Columns: []string{skill.UserskillsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -262,8 +316,70 @@ type SkillUpdateOne struct {
 }
 
 // SetName sets the "name" field.
-func (suo *SkillUpdateOne) SetName(b bool) *SkillUpdateOne {
-	suo.mutation.SetName(b)
+func (suo *SkillUpdateOne) SetName(s string) *SkillUpdateOne {
+	suo.mutation.SetName(s)
+	return suo
+}
+
+// SetLevel sets the "level" field.
+func (suo *SkillUpdateOne) SetLevel(s string) *SkillUpdateOne {
+	suo.mutation.SetLevel(s)
+	return suo
+}
+
+// SetProgress sets the "progress" field.
+func (suo *SkillUpdateOne) SetProgress(i int) *SkillUpdateOne {
+	suo.mutation.ResetProgress()
+	suo.mutation.SetProgress(i)
+	return suo
+}
+
+// SetNillableProgress sets the "progress" field if the given value is not nil.
+func (suo *SkillUpdateOne) SetNillableProgress(i *int) *SkillUpdateOne {
+	if i != nil {
+		suo.SetProgress(*i)
+	}
+	return suo
+}
+
+// AddProgress adds i to the "progress" field.
+func (suo *SkillUpdateOne) AddProgress(i int) *SkillUpdateOne {
+	suo.mutation.AddProgress(i)
+	return suo
+}
+
+// SetDuration sets the "duration" field.
+func (suo *SkillUpdateOne) SetDuration(i int) *SkillUpdateOne {
+	suo.mutation.ResetDuration()
+	suo.mutation.SetDuration(i)
+	return suo
+}
+
+// SetNillableDuration sets the "duration" field if the given value is not nil.
+func (suo *SkillUpdateOne) SetNillableDuration(i *int) *SkillUpdateOne {
+	if i != nil {
+		suo.SetDuration(*i)
+	}
+	return suo
+}
+
+// AddDuration adds i to the "duration" field.
+func (suo *SkillUpdateOne) AddDuration(i int) *SkillUpdateOne {
+	suo.mutation.AddDuration(i)
+	return suo
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (suo *SkillUpdateOne) SetCreatedAt(t time.Time) *SkillUpdateOne {
+	suo.mutation.SetCreatedAt(t)
+	return suo
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (suo *SkillUpdateOne) SetNillableCreatedAt(t *time.Time) *SkillUpdateOne {
+	if t != nil {
+		suo.SetCreatedAt(*t)
+	}
 	return suo
 }
 
@@ -282,19 +398,23 @@ func (suo *SkillUpdateOne) AddCategories(c ...*Category) *SkillUpdateOne {
 	return suo.AddCategoryIDs(ids...)
 }
 
-// AddUserskillIDs adds the "userskills" edge to the UserSkill entity by IDs.
-func (suo *SkillUpdateOne) AddUserskillIDs(ids ...int) *SkillUpdateOne {
-	suo.mutation.AddUserskillIDs(ids...)
+// SetUserID sets the "user" edge to the User entity by ID.
+func (suo *SkillUpdateOne) SetUserID(id int) *SkillUpdateOne {
+	suo.mutation.SetUserID(id)
 	return suo
 }
 
-// AddUserskills adds the "userskills" edges to the UserSkill entity.
-func (suo *SkillUpdateOne) AddUserskills(u ...*UserSkill) *SkillUpdateOne {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (suo *SkillUpdateOne) SetNillableUserID(id *int) *SkillUpdateOne {
+	if id != nil {
+		suo = suo.SetUserID(*id)
 	}
-	return suo.AddUserskillIDs(ids...)
+	return suo
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (suo *SkillUpdateOne) SetUser(u *User) *SkillUpdateOne {
+	return suo.SetUserID(u.ID)
 }
 
 // Mutation returns the SkillMutation object of the builder.
@@ -323,25 +443,10 @@ func (suo *SkillUpdateOne) RemoveCategories(c ...*Category) *SkillUpdateOne {
 	return suo.RemoveCategoryIDs(ids...)
 }
 
-// ClearUserskills clears all "userskills" edges to the UserSkill entity.
-func (suo *SkillUpdateOne) ClearUserskills() *SkillUpdateOne {
-	suo.mutation.ClearUserskills()
+// ClearUser clears the "user" edge to the User entity.
+func (suo *SkillUpdateOne) ClearUser() *SkillUpdateOne {
+	suo.mutation.ClearUser()
 	return suo
-}
-
-// RemoveUserskillIDs removes the "userskills" edge to UserSkill entities by IDs.
-func (suo *SkillUpdateOne) RemoveUserskillIDs(ids ...int) *SkillUpdateOne {
-	suo.mutation.RemoveUserskillIDs(ids...)
-	return suo
-}
-
-// RemoveUserskills removes "userskills" edges to UserSkill entities.
-func (suo *SkillUpdateOne) RemoveUserskills(u ...*UserSkill) *SkillUpdateOne {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return suo.RemoveUserskillIDs(ids...)
 }
 
 // Where appends a list predicates to the SkillUpdate builder.
@@ -411,7 +516,25 @@ func (suo *SkillUpdateOne) sqlSave(ctx context.Context) (_node *Skill, err error
 		}
 	}
 	if value, ok := suo.mutation.Name(); ok {
-		_spec.SetField(skill.FieldName, field.TypeBool, value)
+		_spec.SetField(skill.FieldName, field.TypeString, value)
+	}
+	if value, ok := suo.mutation.Level(); ok {
+		_spec.SetField(skill.FieldLevel, field.TypeString, value)
+	}
+	if value, ok := suo.mutation.Progress(); ok {
+		_spec.SetField(skill.FieldProgress, field.TypeInt, value)
+	}
+	if value, ok := suo.mutation.AddedProgress(); ok {
+		_spec.AddField(skill.FieldProgress, field.TypeInt, value)
+	}
+	if value, ok := suo.mutation.Duration(); ok {
+		_spec.SetField(skill.FieldDuration, field.TypeInt, value)
+	}
+	if value, ok := suo.mutation.AddedDuration(); ok {
+		_spec.AddField(skill.FieldDuration, field.TypeInt, value)
+	}
+	if value, ok := suo.mutation.CreatedAt(); ok {
+		_spec.SetField(skill.FieldCreatedAt, field.TypeTime, value)
 	}
 	if suo.mutation.CategoriesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -458,44 +581,28 @@ func (suo *SkillUpdateOne) sqlSave(ctx context.Context) (_node *Skill, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if suo.mutation.UserskillsCleared() {
+	if suo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   skill.UserskillsTable,
-			Columns: []string{skill.UserskillsColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   skill.UserTable,
+			Columns: []string{skill.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := suo.mutation.RemovedUserskillsIDs(); len(nodes) > 0 && !suo.mutation.UserskillsCleared() {
+	if nodes := suo.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   skill.UserskillsTable,
-			Columns: []string{skill.UserskillsColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   skill.UserTable,
+			Columns: []string{skill.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := suo.mutation.UserskillsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   skill.UserskillsTable,
-			Columns: []string{skill.UserskillsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

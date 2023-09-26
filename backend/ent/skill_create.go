@@ -5,10 +5,11 @@ package ent
 import (
 	"backend/ent/category"
 	"backend/ent/skill"
-	"backend/ent/userskill"
+	"backend/ent/user"
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -22,8 +23,56 @@ type SkillCreate struct {
 }
 
 // SetName sets the "name" field.
-func (sc *SkillCreate) SetName(b bool) *SkillCreate {
-	sc.mutation.SetName(b)
+func (sc *SkillCreate) SetName(s string) *SkillCreate {
+	sc.mutation.SetName(s)
+	return sc
+}
+
+// SetLevel sets the "level" field.
+func (sc *SkillCreate) SetLevel(s string) *SkillCreate {
+	sc.mutation.SetLevel(s)
+	return sc
+}
+
+// SetProgress sets the "progress" field.
+func (sc *SkillCreate) SetProgress(i int) *SkillCreate {
+	sc.mutation.SetProgress(i)
+	return sc
+}
+
+// SetNillableProgress sets the "progress" field if the given value is not nil.
+func (sc *SkillCreate) SetNillableProgress(i *int) *SkillCreate {
+	if i != nil {
+		sc.SetProgress(*i)
+	}
+	return sc
+}
+
+// SetDuration sets the "duration" field.
+func (sc *SkillCreate) SetDuration(i int) *SkillCreate {
+	sc.mutation.SetDuration(i)
+	return sc
+}
+
+// SetNillableDuration sets the "duration" field if the given value is not nil.
+func (sc *SkillCreate) SetNillableDuration(i *int) *SkillCreate {
+	if i != nil {
+		sc.SetDuration(*i)
+	}
+	return sc
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (sc *SkillCreate) SetCreatedAt(t time.Time) *SkillCreate {
+	sc.mutation.SetCreatedAt(t)
+	return sc
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (sc *SkillCreate) SetNillableCreatedAt(t *time.Time) *SkillCreate {
+	if t != nil {
+		sc.SetCreatedAt(*t)
+	}
 	return sc
 }
 
@@ -42,19 +91,23 @@ func (sc *SkillCreate) AddCategories(c ...*Category) *SkillCreate {
 	return sc.AddCategoryIDs(ids...)
 }
 
-// AddUserskillIDs adds the "userskills" edge to the UserSkill entity by IDs.
-func (sc *SkillCreate) AddUserskillIDs(ids ...int) *SkillCreate {
-	sc.mutation.AddUserskillIDs(ids...)
+// SetUserID sets the "user" edge to the User entity by ID.
+func (sc *SkillCreate) SetUserID(id int) *SkillCreate {
+	sc.mutation.SetUserID(id)
 	return sc
 }
 
-// AddUserskills adds the "userskills" edges to the UserSkill entity.
-func (sc *SkillCreate) AddUserskills(u ...*UserSkill) *SkillCreate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (sc *SkillCreate) SetNillableUserID(id *int) *SkillCreate {
+	if id != nil {
+		sc = sc.SetUserID(*id)
 	}
-	return sc.AddUserskillIDs(ids...)
+	return sc
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (sc *SkillCreate) SetUser(u *User) *SkillCreate {
+	return sc.SetUserID(u.ID)
 }
 
 // Mutation returns the SkillMutation object of the builder.
@@ -64,6 +117,7 @@ func (sc *SkillCreate) Mutation() *SkillMutation {
 
 // Save creates the Skill in the database.
 func (sc *SkillCreate) Save(ctx context.Context) (*Skill, error) {
+	sc.defaults()
 	return withHooks(ctx, sc.sqlSave, sc.mutation, sc.hooks)
 }
 
@@ -89,10 +143,38 @@ func (sc *SkillCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (sc *SkillCreate) defaults() {
+	if _, ok := sc.mutation.Progress(); !ok {
+		v := skill.DefaultProgress
+		sc.mutation.SetProgress(v)
+	}
+	if _, ok := sc.mutation.Duration(); !ok {
+		v := skill.DefaultDuration
+		sc.mutation.SetDuration(v)
+	}
+	if _, ok := sc.mutation.CreatedAt(); !ok {
+		v := skill.DefaultCreatedAt()
+		sc.mutation.SetCreatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (sc *SkillCreate) check() error {
 	if _, ok := sc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Skill.name"`)}
+	}
+	if _, ok := sc.mutation.Level(); !ok {
+		return &ValidationError{Name: "level", err: errors.New(`ent: missing required field "Skill.level"`)}
+	}
+	if _, ok := sc.mutation.Progress(); !ok {
+		return &ValidationError{Name: "progress", err: errors.New(`ent: missing required field "Skill.progress"`)}
+	}
+	if _, ok := sc.mutation.Duration(); !ok {
+		return &ValidationError{Name: "duration", err: errors.New(`ent: missing required field "Skill.duration"`)}
+	}
+	if _, ok := sc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Skill.created_at"`)}
 	}
 	return nil
 }
@@ -121,8 +203,24 @@ func (sc *SkillCreate) createSpec() (*Skill, *sqlgraph.CreateSpec) {
 		_spec = sqlgraph.NewCreateSpec(skill.Table, sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt))
 	)
 	if value, ok := sc.mutation.Name(); ok {
-		_spec.SetField(skill.FieldName, field.TypeBool, value)
+		_spec.SetField(skill.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := sc.mutation.Level(); ok {
+		_spec.SetField(skill.FieldLevel, field.TypeString, value)
+		_node.Level = value
+	}
+	if value, ok := sc.mutation.Progress(); ok {
+		_spec.SetField(skill.FieldProgress, field.TypeInt, value)
+		_node.Progress = value
+	}
+	if value, ok := sc.mutation.Duration(); ok {
+		_spec.SetField(skill.FieldDuration, field.TypeInt, value)
+		_node.Duration = value
+	}
+	if value, ok := sc.mutation.CreatedAt(); ok {
+		_spec.SetField(skill.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
 	}
 	if nodes := sc.mutation.CategoriesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -140,20 +238,21 @@ func (sc *SkillCreate) createSpec() (*Skill, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := sc.mutation.UserskillsIDs(); len(nodes) > 0 {
+	if nodes := sc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   skill.UserskillsTable,
-			Columns: []string{skill.UserskillsColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   skill.UserTable,
+			Columns: []string{skill.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.user_skills = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -173,6 +272,7 @@ func (scb *SkillCreateBulk) Save(ctx context.Context) ([]*Skill, error) {
 	for i := range scb.builders {
 		func(i int, root context.Context) {
 			builder := scb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*SkillMutation)
 				if !ok {
