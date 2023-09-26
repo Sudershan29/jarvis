@@ -4,8 +4,10 @@ package ent
 
 import (
 	"backend/ent/skill"
+	"backend/ent/user"
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -17,10 +19,19 @@ type Skill struct {
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
-	Name bool `json:"name,omitempty"`
+	Name string `json:"name,omitempty"`
+	// Level holds the value of the "level" field.
+	Level string `json:"level,omitempty"`
+	// Progress holds the value of the "progress" field.
+	Progress int `json:"progress,omitempty"`
+	// Duration holds the value of the "duration" field.
+	Duration int `json:"duration,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SkillQuery when eager-loading is set.
 	Edges        SkillEdges `json:"edges"`
+	user_skills  *int
 	selectValues sql.SelectValues
 }
 
@@ -28,8 +39,8 @@ type Skill struct {
 type SkillEdges struct {
 	// Categories holds the value of the categories edge.
 	Categories []*Category `json:"categories,omitempty"`
-	// Userskills holds the value of the userskills edge.
-	Userskills []*UserSkill `json:"userskills,omitempty"`
+	// User holds the value of the user edge.
+	User *User `json:"user,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -44,13 +55,17 @@ func (e SkillEdges) CategoriesOrErr() ([]*Category, error) {
 	return nil, &NotLoadedError{edge: "categories"}
 }
 
-// UserskillsOrErr returns the Userskills value or an error if the edge
-// was not loaded in eager-loading.
-func (e SkillEdges) UserskillsOrErr() ([]*UserSkill, error) {
+// UserOrErr returns the User value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e SkillEdges) UserOrErr() (*User, error) {
 	if e.loadedTypes[1] {
-		return e.Userskills, nil
+		if e.User == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: user.Label}
+		}
+		return e.User, nil
 	}
-	return nil, &NotLoadedError{edge: "userskills"}
+	return nil, &NotLoadedError{edge: "user"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -58,9 +73,13 @@ func (*Skill) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case skill.FieldName:
-			values[i] = new(sql.NullBool)
-		case skill.FieldID:
+		case skill.FieldID, skill.FieldProgress, skill.FieldDuration:
+			values[i] = new(sql.NullInt64)
+		case skill.FieldName, skill.FieldLevel:
+			values[i] = new(sql.NullString)
+		case skill.FieldCreatedAt:
+			values[i] = new(sql.NullTime)
+		case skill.ForeignKeys[0]: // user_skills
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -84,10 +103,41 @@ func (s *Skill) assignValues(columns []string, values []any) error {
 			}
 			s.ID = int(value.Int64)
 		case skill.FieldName:
-			if value, ok := values[i].(*sql.NullBool); !ok {
+			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				s.Name = value.Bool
+				s.Name = value.String
+			}
+		case skill.FieldLevel:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field level", values[i])
+			} else if value.Valid {
+				s.Level = value.String
+			}
+		case skill.FieldProgress:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field progress", values[i])
+			} else if value.Valid {
+				s.Progress = int(value.Int64)
+			}
+		case skill.FieldDuration:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field duration", values[i])
+			} else if value.Valid {
+				s.Duration = int(value.Int64)
+			}
+		case skill.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				s.CreatedAt = value.Time
+			}
+		case skill.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field user_skills", value)
+			} else if value.Valid {
+				s.user_skills = new(int)
+				*s.user_skills = int(value.Int64)
 			}
 		default:
 			s.selectValues.Set(columns[i], values[i])
@@ -107,9 +157,9 @@ func (s *Skill) QueryCategories() *CategoryQuery {
 	return NewSkillClient(s.config).QueryCategories(s)
 }
 
-// QueryUserskills queries the "userskills" edge of the Skill entity.
-func (s *Skill) QueryUserskills() *UserSkillQuery {
-	return NewSkillClient(s.config).QueryUserskills(s)
+// QueryUser queries the "user" edge of the Skill entity.
+func (s *Skill) QueryUser() *UserQuery {
+	return NewSkillClient(s.config).QueryUser(s)
 }
 
 // Update returns a builder for updating this Skill.
@@ -136,7 +186,19 @@ func (s *Skill) String() string {
 	builder.WriteString("Skill(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", s.ID))
 	builder.WriteString("name=")
-	builder.WriteString(fmt.Sprintf("%v", s.Name))
+	builder.WriteString(s.Name)
+	builder.WriteString(", ")
+	builder.WriteString("level=")
+	builder.WriteString(s.Level)
+	builder.WriteString(", ")
+	builder.WriteString("progress=")
+	builder.WriteString(fmt.Sprintf("%v", s.Progress))
+	builder.WriteString(", ")
+	builder.WriteString("duration=")
+	builder.WriteString(fmt.Sprintf("%v", s.Duration))
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(s.CreatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

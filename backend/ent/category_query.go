@@ -6,6 +6,7 @@ import (
 	"backend/ent/category"
 	"backend/ent/predicate"
 	"backend/ent/skill"
+	"backend/ent/user"
 	"context"
 	"database/sql/driver"
 	"fmt"
@@ -24,6 +25,8 @@ type CategoryQuery struct {
 	inters     []Interceptor
 	predicates []predicate.Category
 	withSkills *SkillQuery
+	withUser   *UserQuery
+	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -75,6 +78,28 @@ func (cq *CategoryQuery) QuerySkills() *SkillQuery {
 			sqlgraph.From(category.Table, category.FieldID, selector),
 			sqlgraph.To(skill.Table, skill.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, category.SkillsTable, category.SkillsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryUser chains the current query on the "user" edge.
+func (cq *CategoryQuery) QueryUser() *UserQuery {
+	query := (&UserClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, category.UserTable, category.UserColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
@@ -275,6 +300,7 @@ func (cq *CategoryQuery) Clone() *CategoryQuery {
 		inters:     append([]Interceptor{}, cq.inters...),
 		predicates: append([]predicate.Category{}, cq.predicates...),
 		withSkills: cq.withSkills.Clone(),
+		withUser:   cq.withUser.Clone(),
 		// clone intermediate query.
 		sql:  cq.sql.Clone(),
 		path: cq.path,
@@ -292,13 +318,24 @@ func (cq *CategoryQuery) WithSkills(opts ...func(*SkillQuery)) *CategoryQuery {
 	return cq
 }
 
+// WithUser tells the query-builder to eager-load the nodes that are connected to
+// the "user" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CategoryQuery) WithUser(opts ...func(*UserQuery)) *CategoryQuery {
+	query := (&UserClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withUser = query
+	return cq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
 // Example:
 //
 //	var v []struct {
-//		Name bool `json:"name,omitempty"`
+//		Name string `json:"name,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -321,7 +358,7 @@ func (cq *CategoryQuery) GroupBy(field string, fields ...string) *CategoryGroupB
 // Example:
 //
 //	var v []struct {
-//		Name bool `json:"name,omitempty"`
+//		Name string `json:"name,omitempty"`
 //	}
 //
 //	client.Category.Query().
@@ -369,11 +406,19 @@ func (cq *CategoryQuery) prepareQuery(ctx context.Context) error {
 func (cq *CategoryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Category, error) {
 	var (
 		nodes       = []*Category{}
+		withFKs     = cq.withFKs
 		_spec       = cq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			cq.withSkills != nil,
+			cq.withUser != nil,
 		}
 	)
+	if cq.withUser != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, category.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Category).scanValues(nil, columns)
 	}
@@ -396,6 +441,12 @@ func (cq *CategoryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cat
 		if err := cq.loadSkills(ctx, query, nodes,
 			func(n *Category) { n.Edges.Skills = []*Skill{} },
 			func(n *Category, e *Skill) { n.Edges.Skills = append(n.Edges.Skills, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := cq.withUser; query != nil {
+		if err := cq.loadUser(ctx, query, nodes, nil,
+			func(n *Category, e *User) { n.Edges.User = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -459,6 +510,38 @@ func (cq *CategoryQuery) loadSkills(ctx context.Context, query *SkillQuery, node
 		}
 		for kn := range nodes {
 			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (cq *CategoryQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*Category, init func(*Category), assign func(*Category, *User)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Category)
+	for i := range nodes {
+		if nodes[i].user_categories == nil {
+			continue
+		}
+		fk := *nodes[i].user_categories
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(user.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_categories" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
 		}
 	}
 	return nil

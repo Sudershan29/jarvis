@@ -11,13 +11,22 @@ var (
 	// CategoriesColumns holds the columns for the "categories" table.
 	CategoriesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "name", Type: field.TypeBool},
+		{Name: "name", Type: field.TypeString},
+		{Name: "user_categories", Type: field.TypeInt, Nullable: true},
 	}
 	// CategoriesTable holds the schema information for the "categories" table.
 	CategoriesTable = &schema.Table{
 		Name:       "categories",
 		Columns:    CategoriesColumns,
 		PrimaryKey: []*schema.Column{CategoriesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "categories_users_categories",
+				Columns:    []*schema.Column{CategoriesColumns[2]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// PreferencesColumns holds the columns for the "preferences" table.
 	PreferencesColumns = []*schema.Column{
@@ -43,13 +52,26 @@ var (
 	// SkillsColumns holds the columns for the "skills" table.
 	SkillsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "name", Type: field.TypeBool},
+		{Name: "name", Type: field.TypeString},
+		{Name: "level", Type: field.TypeString},
+		{Name: "progress", Type: field.TypeInt, Default: 0},
+		{Name: "duration", Type: field.TypeInt, Default: 0},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_skills", Type: field.TypeInt, Nullable: true},
 	}
 	// SkillsTable holds the schema information for the "skills" table.
 	SkillsTable = &schema.Table{
 		Name:       "skills",
 		Columns:    SkillsColumns,
 		PrimaryKey: []*schema.Column{SkillsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "skills_users_skills",
+				Columns:    []*schema.Column{SkillsColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
@@ -71,35 +93,6 @@ var (
 				Name:    "user_uuid",
 				Unique:  false,
 				Columns: []*schema.Column{UsersColumns[5]},
-			},
-		},
-	}
-	// UserSkillsColumns holds the columns for the "user_skills" table.
-	UserSkillsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "level", Type: field.TypeEnum, Enums: []string{"beginner", "intermediate", "advanced"}},
-		{Name: "progress", Type: field.TypeInt, Default: 0},
-		{Name: "duration", Type: field.TypeInt, Default: 0},
-		{Name: "skill_userskills", Type: field.TypeInt, Nullable: true},
-		{Name: "user_skills", Type: field.TypeInt, Nullable: true},
-	}
-	// UserSkillsTable holds the schema information for the "user_skills" table.
-	UserSkillsTable = &schema.Table{
-		Name:       "user_skills",
-		Columns:    UserSkillsColumns,
-		PrimaryKey: []*schema.Column{UserSkillsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "user_skills_skills_userskills",
-				Columns:    []*schema.Column{UserSkillsColumns[4]},
-				RefColumns: []*schema.Column{SkillsColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "user_skills_users_skills",
-				Columns:    []*schema.Column{UserSkillsColumns[5]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.SetNull,
 			},
 		},
 	}
@@ -134,15 +127,14 @@ var (
 		PreferencesTable,
 		SkillsTable,
 		UsersTable,
-		UserSkillsTable,
 		CategorySkillsTable,
 	}
 )
 
 func init() {
+	CategoriesTable.ForeignKeys[0].RefTable = UsersTable
 	PreferencesTable.ForeignKeys[0].RefTable = UsersTable
-	UserSkillsTable.ForeignKeys[0].RefTable = SkillsTable
-	UserSkillsTable.ForeignKeys[1].RefTable = UsersTable
+	SkillsTable.ForeignKeys[0].RefTable = UsersTable
 	CategorySkillsTable.ForeignKeys[0].RefTable = CategoriesTable
 	CategorySkillsTable.ForeignKeys[1].RefTable = SkillsTable
 }

@@ -3,10 +3,11 @@
 package ent
 
 import (
+	"backend/ent/category"
 	"backend/ent/predicate"
 	"backend/ent/preference"
+	"backend/ent/skill"
 	"backend/ent/user"
-	"backend/ent/userskill"
 	"context"
 	"database/sql/driver"
 	"fmt"
@@ -24,7 +25,8 @@ type UserQuery struct {
 	order          []user.OrderOption
 	inters         []Interceptor
 	predicates     []predicate.User
-	withSkills     *UserSkillQuery
+	withSkills     *SkillQuery
+	withCategories *CategoryQuery
 	withPreference *PreferenceQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -63,8 +65,8 @@ func (uq *UserQuery) Order(o ...user.OrderOption) *UserQuery {
 }
 
 // QuerySkills chains the current query on the "skills" edge.
-func (uq *UserQuery) QuerySkills() *UserSkillQuery {
-	query := (&UserSkillClient{config: uq.config}).Query()
+func (uq *UserQuery) QuerySkills() *SkillQuery {
+	query := (&SkillClient{config: uq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := uq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -75,8 +77,30 @@ func (uq *UserQuery) QuerySkills() *UserSkillQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(userskill.Table, userskill.FieldID),
+			sqlgraph.To(skill.Table, skill.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.SkillsTable, user.SkillsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCategories chains the current query on the "categories" edge.
+func (uq *UserQuery) QueryCategories() *CategoryQuery {
+	query := (&CategoryClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(category.Table, category.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.CategoriesTable, user.CategoriesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -299,6 +323,7 @@ func (uq *UserQuery) Clone() *UserQuery {
 		inters:         append([]Interceptor{}, uq.inters...),
 		predicates:     append([]predicate.User{}, uq.predicates...),
 		withSkills:     uq.withSkills.Clone(),
+		withCategories: uq.withCategories.Clone(),
 		withPreference: uq.withPreference.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
@@ -308,12 +333,23 @@ func (uq *UserQuery) Clone() *UserQuery {
 
 // WithSkills tells the query-builder to eager-load the nodes that are connected to
 // the "skills" edge. The optional arguments are used to configure the query builder of the edge.
-func (uq *UserQuery) WithSkills(opts ...func(*UserSkillQuery)) *UserQuery {
-	query := (&UserSkillClient{config: uq.config}).Query()
+func (uq *UserQuery) WithSkills(opts ...func(*SkillQuery)) *UserQuery {
+	query := (&SkillClient{config: uq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
 	uq.withSkills = query
+	return uq
+}
+
+// WithCategories tells the query-builder to eager-load the nodes that are connected to
+// the "categories" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithCategories(opts ...func(*CategoryQuery)) *UserQuery {
+	query := (&CategoryClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withCategories = query
 	return uq
 }
 
@@ -406,8 +442,9 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			uq.withSkills != nil,
+			uq.withCategories != nil,
 			uq.withPreference != nil,
 		}
 	)
@@ -431,8 +468,15 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	}
 	if query := uq.withSkills; query != nil {
 		if err := uq.loadSkills(ctx, query, nodes,
-			func(n *User) { n.Edges.Skills = []*UserSkill{} },
-			func(n *User, e *UserSkill) { n.Edges.Skills = append(n.Edges.Skills, e) }); err != nil {
+			func(n *User) { n.Edges.Skills = []*Skill{} },
+			func(n *User, e *Skill) { n.Edges.Skills = append(n.Edges.Skills, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withCategories; query != nil {
+		if err := uq.loadCategories(ctx, query, nodes,
+			func(n *User) { n.Edges.Categories = []*Category{} },
+			func(n *User, e *Category) { n.Edges.Categories = append(n.Edges.Categories, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -445,7 +489,7 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	return nodes, nil
 }
 
-func (uq *UserQuery) loadSkills(ctx context.Context, query *UserSkillQuery, nodes []*User, init func(*User), assign func(*User, *UserSkill)) error {
+func (uq *UserQuery) loadSkills(ctx context.Context, query *SkillQuery, nodes []*User, init func(*User), assign func(*User, *Skill)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*User)
 	for i := range nodes {
@@ -456,7 +500,7 @@ func (uq *UserQuery) loadSkills(ctx context.Context, query *UserSkillQuery, node
 		}
 	}
 	query.withFKs = true
-	query.Where(predicate.UserSkill(func(s *sql.Selector) {
+	query.Where(predicate.Skill(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.SkillsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
@@ -471,6 +515,37 @@ func (uq *UserQuery) loadSkills(ctx context.Context, query *UserSkillQuery, node
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_skills" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadCategories(ctx context.Context, query *CategoryQuery, nodes []*User, init func(*User), assign func(*User, *Category)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Category(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.CategoriesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_categories
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_categories" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_categories" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

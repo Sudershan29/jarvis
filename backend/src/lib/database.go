@@ -32,7 +32,7 @@ func databaseOpen(databaseUrl string) *ent.Client {
     return ent.NewClient(ent.Driver(drv))
 }
 
-func runMigrations() *dbContext{
+func ConnectToDatabase() *dbContext{
   /*
 
     Adding migrations
@@ -61,7 +61,7 @@ func runMigrations() *dbContext{
 var DbCtx *dbContext
 
 func init() {
-	DbCtx = runMigrations()
+	DbCtx = ConnectToDatabase()
 }
 
 func CloseDBConnection() {

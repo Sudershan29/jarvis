@@ -6,7 +6,7 @@ import (
 	"backend/ent/category"
 	"backend/ent/predicate"
 	"backend/ent/skill"
-	"backend/ent/userskill"
+	"backend/ent/user"
 	"context"
 	"database/sql/driver"
 	"fmt"
@@ -25,7 +25,8 @@ type SkillQuery struct {
 	inters         []Interceptor
 	predicates     []predicate.Skill
 	withCategories *CategoryQuery
-	withUserskills *UserSkillQuery
+	withUser       *UserQuery
+	withFKs        bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -84,9 +85,9 @@ func (sq *SkillQuery) QueryCategories() *CategoryQuery {
 	return query
 }
 
-// QueryUserskills chains the current query on the "userskills" edge.
-func (sq *SkillQuery) QueryUserskills() *UserSkillQuery {
-	query := (&UserSkillClient{config: sq.config}).Query()
+// QueryUser chains the current query on the "user" edge.
+func (sq *SkillQuery) QueryUser() *UserQuery {
+	query := (&UserClient{config: sq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := sq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -97,8 +98,8 @@ func (sq *SkillQuery) QueryUserskills() *UserSkillQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(skill.Table, skill.FieldID, selector),
-			sqlgraph.To(userskill.Table, userskill.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, skill.UserskillsTable, skill.UserskillsColumn),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, skill.UserTable, skill.UserColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
 		return fromU, nil
@@ -299,7 +300,7 @@ func (sq *SkillQuery) Clone() *SkillQuery {
 		inters:         append([]Interceptor{}, sq.inters...),
 		predicates:     append([]predicate.Skill{}, sq.predicates...),
 		withCategories: sq.withCategories.Clone(),
-		withUserskills: sq.withUserskills.Clone(),
+		withUser:       sq.withUser.Clone(),
 		// clone intermediate query.
 		sql:  sq.sql.Clone(),
 		path: sq.path,
@@ -317,14 +318,14 @@ func (sq *SkillQuery) WithCategories(opts ...func(*CategoryQuery)) *SkillQuery {
 	return sq
 }
 
-// WithUserskills tells the query-builder to eager-load the nodes that are connected to
-// the "userskills" edge. The optional arguments are used to configure the query builder of the edge.
-func (sq *SkillQuery) WithUserskills(opts ...func(*UserSkillQuery)) *SkillQuery {
-	query := (&UserSkillClient{config: sq.config}).Query()
+// WithUser tells the query-builder to eager-load the nodes that are connected to
+// the "user" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *SkillQuery) WithUser(opts ...func(*UserQuery)) *SkillQuery {
+	query := (&UserClient{config: sq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	sq.withUserskills = query
+	sq.withUser = query
 	return sq
 }
 
@@ -334,7 +335,7 @@ func (sq *SkillQuery) WithUserskills(opts ...func(*UserSkillQuery)) *SkillQuery 
 // Example:
 //
 //	var v []struct {
-//		Name bool `json:"name,omitempty"`
+//		Name string `json:"name,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -357,7 +358,7 @@ func (sq *SkillQuery) GroupBy(field string, fields ...string) *SkillGroupBy {
 // Example:
 //
 //	var v []struct {
-//		Name bool `json:"name,omitempty"`
+//		Name string `json:"name,omitempty"`
 //	}
 //
 //	client.Skill.Query().
@@ -405,12 +406,19 @@ func (sq *SkillQuery) prepareQuery(ctx context.Context) error {
 func (sq *SkillQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Skill, error) {
 	var (
 		nodes       = []*Skill{}
+		withFKs     = sq.withFKs
 		_spec       = sq.querySpec()
 		loadedTypes = [2]bool{
 			sq.withCategories != nil,
-			sq.withUserskills != nil,
+			sq.withUser != nil,
 		}
 	)
+	if sq.withUser != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, skill.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Skill).scanValues(nil, columns)
 	}
@@ -436,10 +444,9 @@ func (sq *SkillQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Skill,
 			return nil, err
 		}
 	}
-	if query := sq.withUserskills; query != nil {
-		if err := sq.loadUserskills(ctx, query, nodes,
-			func(n *Skill) { n.Edges.Userskills = []*UserSkill{} },
-			func(n *Skill, e *UserSkill) { n.Edges.Userskills = append(n.Edges.Userskills, e) }); err != nil {
+	if query := sq.withUser; query != nil {
+		if err := sq.loadUser(ctx, query, nodes, nil,
+			func(n *Skill, e *User) { n.Edges.User = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -507,34 +514,35 @@ func (sq *SkillQuery) loadCategories(ctx context.Context, query *CategoryQuery, 
 	}
 	return nil
 }
-func (sq *SkillQuery) loadUserskills(ctx context.Context, query *UserSkillQuery, nodes []*Skill, init func(*Skill), assign func(*Skill, *UserSkill)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Skill)
+func (sq *SkillQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*Skill, init func(*Skill), assign func(*Skill, *User)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Skill)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
+		if nodes[i].user_skills == nil {
+			continue
 		}
+		fk := *nodes[i].user_skills
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	query.withFKs = true
-	query.Where(predicate.UserSkill(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(skill.UserskillsColumn), fks...))
-	}))
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(user.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.skill_userskills
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "skill_userskills" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "skill_userskills" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_skills" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

@@ -3,9 +3,10 @@
 package ent
 
 import (
+	"backend/ent/category"
 	"backend/ent/preference"
+	"backend/ent/skill"
 	"backend/ent/user"
-	"backend/ent/userskill"
 	"context"
 	"errors"
 	"fmt"
@@ -83,19 +84,34 @@ func (uc *UserCreate) SetNillablePremium(b *bool) *UserCreate {
 	return uc
 }
 
-// AddSkillIDs adds the "skills" edge to the UserSkill entity by IDs.
+// AddSkillIDs adds the "skills" edge to the Skill entity by IDs.
 func (uc *UserCreate) AddSkillIDs(ids ...int) *UserCreate {
 	uc.mutation.AddSkillIDs(ids...)
 	return uc
 }
 
-// AddSkills adds the "skills" edges to the UserSkill entity.
-func (uc *UserCreate) AddSkills(u ...*UserSkill) *UserCreate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// AddSkills adds the "skills" edges to the Skill entity.
+func (uc *UserCreate) AddSkills(s ...*Skill) *UserCreate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
 	}
 	return uc.AddSkillIDs(ids...)
+}
+
+// AddCategoryIDs adds the "categories" edge to the Category entity by IDs.
+func (uc *UserCreate) AddCategoryIDs(ids ...int) *UserCreate {
+	uc.mutation.AddCategoryIDs(ids...)
+	return uc
+}
+
+// AddCategories adds the "categories" edges to the Category entity.
+func (uc *UserCreate) AddCategories(c ...*Category) *UserCreate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uc.AddCategoryIDs(ids...)
 }
 
 // SetPreferenceID sets the "preference" edge to the Preference entity by ID.
@@ -244,7 +260,23 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.SkillsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(userskill.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.CategoriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CategoriesTable,
+			Columns: []string{user.CategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

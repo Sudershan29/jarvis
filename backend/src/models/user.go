@@ -12,7 +12,24 @@ import (
 )
 
 type UserModel struct {
-	user *ent.User
+	User *ent.User
+}
+
+// Minified 
+type JwtUser struct {
+	UserId uuid.UUID
+	Model *UserModel
+}
+
+func NewJwtUser(user_id string) *JwtUser {
+	uuid, _ := uuid.Parse(user_id)
+	return &JwtUser{UserId: uuid}
+}
+
+// Loads only when neccessary!
+func (j *JwtUser) Load() {
+	u, _ := UserFind(j.UserId.String())
+	j.Model = u
 }
 
 type UserJSON struct {
@@ -71,7 +88,7 @@ func (u UserModel) Login(password string) (string, error) {
 	if !u.checkPasswordHash(password) {
 		return "", errors.New("Username and Password did not match")
 	}
-	return lib.GenerateJWT(u.user.UUID.String())
+	return lib.GenerateJWT(u.User.UUID.String())
 }
 
 func hashPassword(password string) string {
@@ -80,12 +97,12 @@ func hashPassword(password string) string {
 }
 
 func (u UserModel) checkPasswordHash(password string) bool {
-    err := bcrypt.CompareHashAndPassword([]byte(u.user.Password), []byte(password))
+    err := bcrypt.CompareHashAndPassword([]byte(u.User.Password), []byte(password))
     return err == nil
 }
 
 func (u UserModel) Marshal() UserJSON { // []byte
-	user := UserJSON{u.user.Name, u.user.EmailAddress, u.user.CreatedAt}
+	user := UserJSON{u.User.Name, u.User.EmailAddress, u.User.CreatedAt}
 	// userJSON, _ := json.Marshal(user)
 	return user
 }

@@ -14,7 +14,7 @@ type Category struct {
 // Fields of the Category.
 func (Category) Fields() []ent.Field {
 	return []ent.Field{
-		field.Bool("name"),
+		field.String("name"),
 	}
 }
 
@@ -22,5 +22,8 @@ func (Category) Fields() []ent.Field {
 func (Category) Edges() []ent.Edge {
 	return []ent.Edge{
         edge.To("skills", Skill.Type),
+		edge.From("user", User.Type).
+			Ref("categories").
+            Unique(),
     }
 }

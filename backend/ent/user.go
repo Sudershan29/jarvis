@@ -40,27 +40,38 @@ type User struct {
 // UserEdges holds the relations/edges for other nodes in the graph.
 type UserEdges struct {
 	// Skills holds the value of the skills edge.
-	Skills []*UserSkill `json:"skills,omitempty"`
+	Skills []*Skill `json:"skills,omitempty"`
+	// Categories holds the value of the categories edge.
+	Categories []*Category `json:"categories,omitempty"`
 	// Preference holds the value of the preference edge.
 	Preference *Preference `json:"preference,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // SkillsOrErr returns the Skills value or an error if the edge
 // was not loaded in eager-loading.
-func (e UserEdges) SkillsOrErr() ([]*UserSkill, error) {
+func (e UserEdges) SkillsOrErr() ([]*Skill, error) {
 	if e.loadedTypes[0] {
 		return e.Skills, nil
 	}
 	return nil, &NotLoadedError{edge: "skills"}
 }
 
+// CategoriesOrErr returns the Categories value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) CategoriesOrErr() ([]*Category, error) {
+	if e.loadedTypes[1] {
+		return e.Categories, nil
+	}
+	return nil, &NotLoadedError{edge: "categories"}
+}
+
 // PreferenceOrErr returns the Preference value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e UserEdges) PreferenceOrErr() (*Preference, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		if e.Preference == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: preference.Label}
@@ -156,8 +167,13 @@ func (u *User) Value(name string) (ent.Value, error) {
 }
 
 // QuerySkills queries the "skills" edge of the User entity.
-func (u *User) QuerySkills() *UserSkillQuery {
+func (u *User) QuerySkills() *SkillQuery {
 	return NewUserClient(u.config).QuerySkills(u)
+}
+
+// QueryCategories queries the "categories" edge of the User entity.
+func (u *User) QueryCategories() *CategoryQuery {
+	return NewUserClient(u.config).QueryCategories(u)
 }
 
 // QueryPreference queries the "preference" edge of the User entity.

@@ -5,6 +5,7 @@ package ent
 import (
 	"backend/ent/category"
 	"backend/ent/skill"
+	"backend/ent/user"
 	"context"
 	"errors"
 	"fmt"
@@ -21,8 +22,8 @@ type CategoryCreate struct {
 }
 
 // SetName sets the "name" field.
-func (cc *CategoryCreate) SetName(b bool) *CategoryCreate {
-	cc.mutation.SetName(b)
+func (cc *CategoryCreate) SetName(s string) *CategoryCreate {
+	cc.mutation.SetName(s)
 	return cc
 }
 
@@ -39,6 +40,25 @@ func (cc *CategoryCreate) AddSkills(s ...*Skill) *CategoryCreate {
 		ids[i] = s[i].ID
 	}
 	return cc.AddSkillIDs(ids...)
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (cc *CategoryCreate) SetUserID(id int) *CategoryCreate {
+	cc.mutation.SetUserID(id)
+	return cc
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (cc *CategoryCreate) SetNillableUserID(id *int) *CategoryCreate {
+	if id != nil {
+		cc = cc.SetUserID(*id)
+	}
+	return cc
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (cc *CategoryCreate) SetUser(u *User) *CategoryCreate {
+	return cc.SetUserID(u.ID)
 }
 
 // Mutation returns the CategoryMutation object of the builder.
@@ -105,7 +125,7 @@ func (cc *CategoryCreate) createSpec() (*Category, *sqlgraph.CreateSpec) {
 		_spec = sqlgraph.NewCreateSpec(category.Table, sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt))
 	)
 	if value, ok := cc.mutation.Name(); ok {
-		_spec.SetField(category.FieldName, field.TypeBool, value)
+		_spec.SetField(category.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
 	if nodes := cc.mutation.SkillsIDs(); len(nodes) > 0 {
@@ -122,6 +142,23 @@ func (cc *CategoryCreate) createSpec() (*Category, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := cc.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   category.UserTable,
+			Columns: []string{category.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.user_categories = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

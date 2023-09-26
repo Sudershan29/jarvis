@@ -4,6 +4,7 @@ package ent
 
 import (
 	"backend/ent/category"
+	"backend/ent/user"
 	"fmt"
 	"strings"
 
@@ -17,20 +18,23 @@ type Category struct {
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
-	Name bool `json:"name,omitempty"`
+	Name string `json:"name,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CategoryQuery when eager-loading is set.
-	Edges        CategoryEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges           CategoryEdges `json:"edges"`
+	user_categories *int
+	selectValues    sql.SelectValues
 }
 
 // CategoryEdges holds the relations/edges for other nodes in the graph.
 type CategoryEdges struct {
 	// Skills holds the value of the skills edge.
 	Skills []*Skill `json:"skills,omitempty"`
+	// User holds the value of the user edge.
+	User *User `json:"user,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // SkillsOrErr returns the Skills value or an error if the edge
@@ -42,14 +46,29 @@ func (e CategoryEdges) SkillsOrErr() ([]*Skill, error) {
 	return nil, &NotLoadedError{edge: "skills"}
 }
 
+// UserOrErr returns the User value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e CategoryEdges) UserOrErr() (*User, error) {
+	if e.loadedTypes[1] {
+		if e.User == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: user.Label}
+		}
+		return e.User, nil
+	}
+	return nil, &NotLoadedError{edge: "user"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Category) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case category.FieldName:
-			values[i] = new(sql.NullBool)
 		case category.FieldID:
+			values[i] = new(sql.NullInt64)
+		case category.FieldName:
+			values[i] = new(sql.NullString)
+		case category.ForeignKeys[0]: // user_categories
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -73,10 +92,17 @@ func (c *Category) assignValues(columns []string, values []any) error {
 			}
 			c.ID = int(value.Int64)
 		case category.FieldName:
-			if value, ok := values[i].(*sql.NullBool); !ok {
+			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				c.Name = value.Bool
+				c.Name = value.String
+			}
+		case category.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field user_categories", value)
+			} else if value.Valid {
+				c.user_categories = new(int)
+				*c.user_categories = int(value.Int64)
 			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
@@ -94,6 +120,11 @@ func (c *Category) Value(name string) (ent.Value, error) {
 // QuerySkills queries the "skills" edge of the Category entity.
 func (c *Category) QuerySkills() *SkillQuery {
 	return NewCategoryClient(c.config).QuerySkills(c)
+}
+
+// QueryUser queries the "user" edge of the Category entity.
+func (c *Category) QueryUser() *UserQuery {
+	return NewCategoryClient(c.config).QueryUser(c)
 }
 
 // Update returns a builder for updating this Category.
@@ -120,7 +151,7 @@ func (c *Category) String() string {
 	builder.WriteString("Category(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", c.ID))
 	builder.WriteString("name=")
-	builder.WriteString(fmt.Sprintf("%v", c.Name))
+	builder.WriteString(c.Name)
 	builder.WriteByte(')')
 	return builder.String()
 }

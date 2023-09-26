@@ -34,7 +34,8 @@ func (User) Fields() []ent.Field {
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
-        edge.To("skills", UserSkill.Type),
+        edge.To("skills", Skill.Type),
+        edge.To("categories", Category.Type),
         edge.To("preference", Preference.Type).
             Unique(),
     }
