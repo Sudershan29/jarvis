@@ -11,8 +11,12 @@ import (
 	"backend/ent/migrate"
 
 	"backend/ent/category"
+	"backend/ent/goal"
+	"backend/ent/hobby"
+	"backend/ent/meeting"
 	"backend/ent/preference"
 	"backend/ent/skill"
+	"backend/ent/task"
 	"backend/ent/user"
 
 	"entgo.io/ent"
@@ -28,10 +32,18 @@ type Client struct {
 	Schema *migrate.Schema
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
+	// Goal is the client for interacting with the Goal builders.
+	Goal *GoalClient
+	// Hobby is the client for interacting with the Hobby builders.
+	Hobby *HobbyClient
+	// Meeting is the client for interacting with the Meeting builders.
+	Meeting *MeetingClient
 	// Preference is the client for interacting with the Preference builders.
 	Preference *PreferenceClient
 	// Skill is the client for interacting with the Skill builders.
 	Skill *SkillClient
+	// Task is the client for interacting with the Task builders.
+	Task *TaskClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -48,8 +60,12 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Category = NewCategoryClient(c.config)
+	c.Goal = NewGoalClient(c.config)
+	c.Hobby = NewHobbyClient(c.config)
+	c.Meeting = NewMeetingClient(c.config)
 	c.Preference = NewPreferenceClient(c.config)
 	c.Skill = NewSkillClient(c.config)
+	c.Task = NewTaskClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -134,8 +150,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:        ctx,
 		config:     cfg,
 		Category:   NewCategoryClient(cfg),
+		Goal:       NewGoalClient(cfg),
+		Hobby:      NewHobbyClient(cfg),
+		Meeting:    NewMeetingClient(cfg),
 		Preference: NewPreferenceClient(cfg),
 		Skill:      NewSkillClient(cfg),
+		Task:       NewTaskClient(cfg),
 		User:       NewUserClient(cfg),
 	}, nil
 }
@@ -157,8 +177,12 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:        ctx,
 		config:     cfg,
 		Category:   NewCategoryClient(cfg),
+		Goal:       NewGoalClient(cfg),
+		Hobby:      NewHobbyClient(cfg),
+		Meeting:    NewMeetingClient(cfg),
 		Preference: NewPreferenceClient(cfg),
 		Skill:      NewSkillClient(cfg),
+		Task:       NewTaskClient(cfg),
 		User:       NewUserClient(cfg),
 	}, nil
 }
@@ -188,19 +212,21 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Category.Use(hooks...)
-	c.Preference.Use(hooks...)
-	c.Skill.Use(hooks...)
-	c.User.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Skill, c.Task, c.User,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Category.Intercept(interceptors...)
-	c.Preference.Intercept(interceptors...)
-	c.Skill.Intercept(interceptors...)
-	c.User.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Skill, c.Task, c.User,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -208,10 +234,18 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *CategoryMutation:
 		return c.Category.mutate(ctx, m)
+	case *GoalMutation:
+		return c.Goal.mutate(ctx, m)
+	case *HobbyMutation:
+		return c.Hobby.mutate(ctx, m)
+	case *MeetingMutation:
+		return c.Meeting.mutate(ctx, m)
 	case *PreferenceMutation:
 		return c.Preference.mutate(ctx, m)
 	case *SkillMutation:
 		return c.Skill.mutate(ctx, m)
+	case *TaskMutation:
+		return c.Task.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
@@ -328,6 +362,54 @@ func (c *CategoryClient) QuerySkills(ca *Category) *SkillQuery {
 	return query
 }
 
+// QueryTasks queries the tasks edge of a Category.
+func (c *CategoryClient) QueryTasks(ca *Category) *TaskQuery {
+	query := (&TaskClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ca.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, id),
+			sqlgraph.To(task.Table, task.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, category.TasksTable, category.TasksPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryGoals queries the goals edge of a Category.
+func (c *CategoryClient) QueryGoals(ca *Category) *GoalQuery {
+	query := (&GoalClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ca.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, id),
+			sqlgraph.To(goal.Table, goal.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, category.GoalsTable, category.GoalsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryHobbies queries the hobbies edge of a Category.
+func (c *CategoryClient) QueryHobbies(ca *Category) *HobbyQuery {
+	query := (&HobbyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ca.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, id),
+			sqlgraph.To(hobby.Table, hobby.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, category.HobbiesTable, category.HobbiesPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryUser queries the user edge of a Category.
 func (c *CategoryClient) QueryUser(ca *Category) *UserQuery {
 	query := (&UserClient{config: c.config}).Query()
@@ -366,6 +448,440 @@ func (c *CategoryClient) mutate(ctx context.Context, m *CategoryMutation) (Value
 		return (&CategoryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Category mutation op: %q", m.Op())
+	}
+}
+
+// GoalClient is a client for the Goal schema.
+type GoalClient struct {
+	config
+}
+
+// NewGoalClient returns a client for the Goal from the given config.
+func NewGoalClient(c config) *GoalClient {
+	return &GoalClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `goal.Hooks(f(g(h())))`.
+func (c *GoalClient) Use(hooks ...Hook) {
+	c.hooks.Goal = append(c.hooks.Goal, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `goal.Intercept(f(g(h())))`.
+func (c *GoalClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Goal = append(c.inters.Goal, interceptors...)
+}
+
+// Create returns a builder for creating a Goal entity.
+func (c *GoalClient) Create() *GoalCreate {
+	mutation := newGoalMutation(c.config, OpCreate)
+	return &GoalCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Goal entities.
+func (c *GoalClient) CreateBulk(builders ...*GoalCreate) *GoalCreateBulk {
+	return &GoalCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Goal.
+func (c *GoalClient) Update() *GoalUpdate {
+	mutation := newGoalMutation(c.config, OpUpdate)
+	return &GoalUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GoalClient) UpdateOne(_go *Goal) *GoalUpdateOne {
+	mutation := newGoalMutation(c.config, OpUpdateOne, withGoal(_go))
+	return &GoalUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GoalClient) UpdateOneID(id int) *GoalUpdateOne {
+	mutation := newGoalMutation(c.config, OpUpdateOne, withGoalID(id))
+	return &GoalUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Goal.
+func (c *GoalClient) Delete() *GoalDelete {
+	mutation := newGoalMutation(c.config, OpDelete)
+	return &GoalDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GoalClient) DeleteOne(_go *Goal) *GoalDeleteOne {
+	return c.DeleteOneID(_go.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GoalClient) DeleteOneID(id int) *GoalDeleteOne {
+	builder := c.Delete().Where(goal.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GoalDeleteOne{builder}
+}
+
+// Query returns a query builder for Goal.
+func (c *GoalClient) Query() *GoalQuery {
+	return &GoalQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGoal},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Goal entity by its id.
+func (c *GoalClient) Get(ctx context.Context, id int) (*Goal, error) {
+	return c.Query().Where(goal.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GoalClient) GetX(ctx context.Context, id int) *Goal {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCategories queries the categories edge of a Goal.
+func (c *GoalClient) QueryCategories(_go *Goal) *CategoryQuery {
+	query := (&CategoryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _go.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(goal.Table, goal.FieldID, id),
+			sqlgraph.To(category.Table, category.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, goal.CategoriesTable, goal.CategoriesPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(_go.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a Goal.
+func (c *GoalClient) QueryUser(_go *Goal) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _go.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(goal.Table, goal.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, goal.UserTable, goal.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_go.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *GoalClient) Hooks() []Hook {
+	return c.hooks.Goal
+}
+
+// Interceptors returns the client interceptors.
+func (c *GoalClient) Interceptors() []Interceptor {
+	return c.inters.Goal
+}
+
+func (c *GoalClient) mutate(ctx context.Context, m *GoalMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GoalCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GoalUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GoalUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GoalDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Goal mutation op: %q", m.Op())
+	}
+}
+
+// HobbyClient is a client for the Hobby schema.
+type HobbyClient struct {
+	config
+}
+
+// NewHobbyClient returns a client for the Hobby from the given config.
+func NewHobbyClient(c config) *HobbyClient {
+	return &HobbyClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `hobby.Hooks(f(g(h())))`.
+func (c *HobbyClient) Use(hooks ...Hook) {
+	c.hooks.Hobby = append(c.hooks.Hobby, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `hobby.Intercept(f(g(h())))`.
+func (c *HobbyClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Hobby = append(c.inters.Hobby, interceptors...)
+}
+
+// Create returns a builder for creating a Hobby entity.
+func (c *HobbyClient) Create() *HobbyCreate {
+	mutation := newHobbyMutation(c.config, OpCreate)
+	return &HobbyCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Hobby entities.
+func (c *HobbyClient) CreateBulk(builders ...*HobbyCreate) *HobbyCreateBulk {
+	return &HobbyCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Hobby.
+func (c *HobbyClient) Update() *HobbyUpdate {
+	mutation := newHobbyMutation(c.config, OpUpdate)
+	return &HobbyUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *HobbyClient) UpdateOne(h *Hobby) *HobbyUpdateOne {
+	mutation := newHobbyMutation(c.config, OpUpdateOne, withHobby(h))
+	return &HobbyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *HobbyClient) UpdateOneID(id int) *HobbyUpdateOne {
+	mutation := newHobbyMutation(c.config, OpUpdateOne, withHobbyID(id))
+	return &HobbyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Hobby.
+func (c *HobbyClient) Delete() *HobbyDelete {
+	mutation := newHobbyMutation(c.config, OpDelete)
+	return &HobbyDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *HobbyClient) DeleteOne(h *Hobby) *HobbyDeleteOne {
+	return c.DeleteOneID(h.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *HobbyClient) DeleteOneID(id int) *HobbyDeleteOne {
+	builder := c.Delete().Where(hobby.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &HobbyDeleteOne{builder}
+}
+
+// Query returns a query builder for Hobby.
+func (c *HobbyClient) Query() *HobbyQuery {
+	return &HobbyQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeHobby},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Hobby entity by its id.
+func (c *HobbyClient) Get(ctx context.Context, id int) (*Hobby, error) {
+	return c.Query().Where(hobby.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *HobbyClient) GetX(ctx context.Context, id int) *Hobby {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCategories queries the categories edge of a Hobby.
+func (c *HobbyClient) QueryCategories(h *Hobby) *CategoryQuery {
+	query := (&CategoryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := h.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(hobby.Table, hobby.FieldID, id),
+			sqlgraph.To(category.Table, category.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, hobby.CategoriesTable, hobby.CategoriesPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(h.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a Hobby.
+func (c *HobbyClient) QueryUser(h *Hobby) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := h.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(hobby.Table, hobby.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, hobby.UserTable, hobby.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(h.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *HobbyClient) Hooks() []Hook {
+	return c.hooks.Hobby
+}
+
+// Interceptors returns the client interceptors.
+func (c *HobbyClient) Interceptors() []Interceptor {
+	return c.inters.Hobby
+}
+
+func (c *HobbyClient) mutate(ctx context.Context, m *HobbyMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&HobbyCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&HobbyUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&HobbyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&HobbyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Hobby mutation op: %q", m.Op())
+	}
+}
+
+// MeetingClient is a client for the Meeting schema.
+type MeetingClient struct {
+	config
+}
+
+// NewMeetingClient returns a client for the Meeting from the given config.
+func NewMeetingClient(c config) *MeetingClient {
+	return &MeetingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `meeting.Hooks(f(g(h())))`.
+func (c *MeetingClient) Use(hooks ...Hook) {
+	c.hooks.Meeting = append(c.hooks.Meeting, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `meeting.Intercept(f(g(h())))`.
+func (c *MeetingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Meeting = append(c.inters.Meeting, interceptors...)
+}
+
+// Create returns a builder for creating a Meeting entity.
+func (c *MeetingClient) Create() *MeetingCreate {
+	mutation := newMeetingMutation(c.config, OpCreate)
+	return &MeetingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Meeting entities.
+func (c *MeetingClient) CreateBulk(builders ...*MeetingCreate) *MeetingCreateBulk {
+	return &MeetingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Meeting.
+func (c *MeetingClient) Update() *MeetingUpdate {
+	mutation := newMeetingMutation(c.config, OpUpdate)
+	return &MeetingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MeetingClient) UpdateOne(m *Meeting) *MeetingUpdateOne {
+	mutation := newMeetingMutation(c.config, OpUpdateOne, withMeeting(m))
+	return &MeetingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MeetingClient) UpdateOneID(id int) *MeetingUpdateOne {
+	mutation := newMeetingMutation(c.config, OpUpdateOne, withMeetingID(id))
+	return &MeetingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Meeting.
+func (c *MeetingClient) Delete() *MeetingDelete {
+	mutation := newMeetingMutation(c.config, OpDelete)
+	return &MeetingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MeetingClient) DeleteOne(m *Meeting) *MeetingDeleteOne {
+	return c.DeleteOneID(m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MeetingClient) DeleteOneID(id int) *MeetingDeleteOne {
+	builder := c.Delete().Where(meeting.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MeetingDeleteOne{builder}
+}
+
+// Query returns a query builder for Meeting.
+func (c *MeetingClient) Query() *MeetingQuery {
+	return &MeetingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMeeting},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Meeting entity by its id.
+func (c *MeetingClient) Get(ctx context.Context, id int) (*Meeting, error) {
+	return c.Query().Where(meeting.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MeetingClient) GetX(ctx context.Context, id int) *Meeting {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Meeting.
+func (c *MeetingClient) QueryUser(m *Meeting) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(meeting.Table, meeting.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, meeting.UserTable, meeting.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *MeetingClient) Hooks() []Hook {
+	return c.hooks.Meeting
+}
+
+// Interceptors returns the client interceptors.
+func (c *MeetingClient) Interceptors() []Interceptor {
+	return c.inters.Meeting
+}
+
+func (c *MeetingClient) mutate(ctx context.Context, m *MeetingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MeetingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MeetingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MeetingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MeetingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Meeting mutation op: %q", m.Op())
 	}
 }
 
@@ -653,6 +1169,156 @@ func (c *SkillClient) mutate(ctx context.Context, m *SkillMutation) (Value, erro
 	}
 }
 
+// TaskClient is a client for the Task schema.
+type TaskClient struct {
+	config
+}
+
+// NewTaskClient returns a client for the Task from the given config.
+func NewTaskClient(c config) *TaskClient {
+	return &TaskClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `task.Hooks(f(g(h())))`.
+func (c *TaskClient) Use(hooks ...Hook) {
+	c.hooks.Task = append(c.hooks.Task, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `task.Intercept(f(g(h())))`.
+func (c *TaskClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Task = append(c.inters.Task, interceptors...)
+}
+
+// Create returns a builder for creating a Task entity.
+func (c *TaskClient) Create() *TaskCreate {
+	mutation := newTaskMutation(c.config, OpCreate)
+	return &TaskCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Task entities.
+func (c *TaskClient) CreateBulk(builders ...*TaskCreate) *TaskCreateBulk {
+	return &TaskCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Task.
+func (c *TaskClient) Update() *TaskUpdate {
+	mutation := newTaskMutation(c.config, OpUpdate)
+	return &TaskUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TaskClient) UpdateOne(t *Task) *TaskUpdateOne {
+	mutation := newTaskMutation(c.config, OpUpdateOne, withTask(t))
+	return &TaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TaskClient) UpdateOneID(id int) *TaskUpdateOne {
+	mutation := newTaskMutation(c.config, OpUpdateOne, withTaskID(id))
+	return &TaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Task.
+func (c *TaskClient) Delete() *TaskDelete {
+	mutation := newTaskMutation(c.config, OpDelete)
+	return &TaskDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TaskClient) DeleteOne(t *Task) *TaskDeleteOne {
+	return c.DeleteOneID(t.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TaskClient) DeleteOneID(id int) *TaskDeleteOne {
+	builder := c.Delete().Where(task.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TaskDeleteOne{builder}
+}
+
+// Query returns a query builder for Task.
+func (c *TaskClient) Query() *TaskQuery {
+	return &TaskQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTask},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Task entity by its id.
+func (c *TaskClient) Get(ctx context.Context, id int) (*Task, error) {
+	return c.Query().Where(task.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TaskClient) GetX(ctx context.Context, id int) *Task {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCategories queries the categories edge of a Task.
+func (c *TaskClient) QueryCategories(t *Task) *CategoryQuery {
+	query := (&CategoryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(task.Table, task.FieldID, id),
+			sqlgraph.To(category.Table, category.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, task.CategoriesTable, task.CategoriesPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a Task.
+func (c *TaskClient) QueryUser(t *Task) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(task.Table, task.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, task.UserTable, task.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TaskClient) Hooks() []Hook {
+	return c.hooks.Task
+}
+
+// Interceptors returns the client interceptors.
+func (c *TaskClient) Interceptors() []Interceptor {
+	return c.inters.Task
+}
+
+func (c *TaskClient) mutate(ctx context.Context, m *TaskMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TaskCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TaskUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TaskDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Task mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -762,6 +1428,70 @@ func (c *UserClient) QuerySkills(u *User) *SkillQuery {
 	return query
 }
 
+// QueryTasks queries the tasks edge of a User.
+func (c *UserClient) QueryTasks(u *User) *TaskQuery {
+	query := (&TaskClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(task.Table, task.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.TasksTable, user.TasksColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryMeetings queries the meetings edge of a User.
+func (c *UserClient) QueryMeetings(u *User) *MeetingQuery {
+	query := (&MeetingClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(meeting.Table, meeting.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.MeetingsTable, user.MeetingsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryHobbies queries the hobbies edge of a User.
+func (c *UserClient) QueryHobbies(u *User) *HobbyQuery {
+	query := (&HobbyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(hobby.Table, hobby.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.HobbiesTable, user.HobbiesColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryGoals queries the goals edge of a User.
+func (c *UserClient) QueryGoals(u *User) *GoalQuery {
+	query := (&GoalClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(goal.Table, goal.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.GoalsTable, user.GoalsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCategories queries the categories edge of a User.
 func (c *UserClient) QueryCategories(u *User) *CategoryQuery {
 	query := (&CategoryClient{config: c.config}).Query()
@@ -822,9 +1552,9 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Category, Preference, Skill, User []ent.Hook
+		Category, Goal, Hobby, Meeting, Preference, Skill, Task, User []ent.Hook
 	}
 	inters struct {
-		Category, Preference, Skill, User []ent.Interceptor
+		Category, Goal, Hobby, Meeting, Preference, Skill, Task, User []ent.Interceptor
 	}
 )

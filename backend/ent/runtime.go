@@ -3,9 +3,13 @@
 package ent
 
 import (
+	"backend/ent/goal"
+	"backend/ent/hobby"
+	"backend/ent/meeting"
 	"backend/ent/preference"
 	"backend/ent/schema"
 	"backend/ent/skill"
+	"backend/ent/task"
 	"backend/ent/user"
 	"time"
 
@@ -16,6 +20,28 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	goalFields := schema.Goal{}.Fields()
+	_ = goalFields
+	// goalDescCreatedAt is the schema descriptor for created_at field.
+	goalDescCreatedAt := goalFields[2].Descriptor()
+	// goal.DefaultCreatedAt holds the default value on creation for the created_at field.
+	goal.DefaultCreatedAt = goalDescCreatedAt.Default.(func() time.Time)
+	hobbyFields := schema.Hobby{}.Fields()
+	_ = hobbyFields
+	// hobbyDescCreatedAt is the schema descriptor for created_at field.
+	hobbyDescCreatedAt := hobbyFields[2].Descriptor()
+	// hobby.DefaultCreatedAt holds the default value on creation for the created_at field.
+	hobby.DefaultCreatedAt = hobbyDescCreatedAt.Default.(func() time.Time)
+	meetingFields := schema.Meeting{}.Fields()
+	_ = meetingFields
+	// meetingDescDuration is the schema descriptor for duration field.
+	meetingDescDuration := meetingFields[4].Descriptor()
+	// meeting.DefaultDuration holds the default value on creation for the duration field.
+	meeting.DefaultDuration = meetingDescDuration.Default.(int)
+	// meetingDescCreatedAt is the schema descriptor for created_at field.
+	meetingDescCreatedAt := meetingFields[5].Descriptor()
+	// meeting.DefaultCreatedAt holds the default value on creation for the created_at field.
+	meeting.DefaultCreatedAt = meetingDescCreatedAt.Default.(func() time.Time)
 	preferenceFields := schema.Preference{}.Fields()
 	_ = preferenceFields
 	// preferenceDescFreeWeekends is the schema descriptor for free_weekends field.
@@ -40,6 +66,20 @@ func init() {
 	skillDescCreatedAt := skillFields[4].Descriptor()
 	// skill.DefaultCreatedAt holds the default value on creation for the created_at field.
 	skill.DefaultCreatedAt = skillDescCreatedAt.Default.(func() time.Time)
+	taskFields := schema.Task{}.Fields()
+	_ = taskFields
+	// taskDescDuration is the schema descriptor for duration field.
+	taskDescDuration := taskFields[2].Descriptor()
+	// task.DefaultDuration holds the default value on creation for the duration field.
+	task.DefaultDuration = taskDescDuration.Default.(int)
+	// taskDescCreatedAt is the schema descriptor for created_at field.
+	taskDescCreatedAt := taskFields[3].Descriptor()
+	// task.DefaultCreatedAt holds the default value on creation for the created_at field.
+	task.DefaultCreatedAt = taskDescCreatedAt.Default.(func() time.Time)
+	// taskDescDeadline is the schema descriptor for deadline field.
+	taskDescDeadline := taskFields[4].Descriptor()
+	// task.DefaultDeadline holds the default value on creation for the deadline field.
+	task.DefaultDeadline = taskDescDeadline.Default.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.

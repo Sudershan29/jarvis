@@ -7,34 +7,36 @@ import (
 	"entgo.io/ent/schema/edge"
 )
 
-// Skill holds the schema definition for the Skill entity.
-type Skill struct {
+// Task holds the schema definition for the Task entity.
+type Task struct {
 	ent.Schema
 }
 
-// Fields of the Skill.
-func (Skill) Fields() []ent.Field {
+// Fields of the Task.
+func (Task) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name"),
-		field.String("level"),
-		field.Int("progress").
-			Default(0),
-		field.Int("duration").	// Duration in days
+		field.String("description").
+			Optional(),
+		field.Int("duration").
 			Default(0),
 		field.Time("created_at").
+            Default(time.Now),
+		field.Time("deadline").
             Default(time.Now),
 	}
 }
 
-// Edges of the Skill.
-func (Skill) Edges() []ent.Edge {
+// Edges of the Task.
+func (Task) Edges() []ent.Edge {
 	return []ent.Edge{
 		// M2M
 		edge.From("categories", Category.Type).
-			Ref("skills"),
+			Ref("tasks"),
+
 		// O2M
         edge.From("user", User.Type).
-			Ref("skills").
+			Ref("tasks").
             Unique(),
     }
 }

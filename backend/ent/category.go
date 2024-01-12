@@ -30,11 +30,17 @@ type Category struct {
 type CategoryEdges struct {
 	// Skills holds the value of the skills edge.
 	Skills []*Skill `json:"skills,omitempty"`
+	// Tasks holds the value of the tasks edge.
+	Tasks []*Task `json:"tasks,omitempty"`
+	// Goals holds the value of the goals edge.
+	Goals []*Goal `json:"goals,omitempty"`
+	// Hobbies holds the value of the hobbies edge.
+	Hobbies []*Hobby `json:"hobbies,omitempty"`
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [5]bool
 }
 
 // SkillsOrErr returns the Skills value or an error if the edge
@@ -46,10 +52,37 @@ func (e CategoryEdges) SkillsOrErr() ([]*Skill, error) {
 	return nil, &NotLoadedError{edge: "skills"}
 }
 
+// TasksOrErr returns the Tasks value or an error if the edge
+// was not loaded in eager-loading.
+func (e CategoryEdges) TasksOrErr() ([]*Task, error) {
+	if e.loadedTypes[1] {
+		return e.Tasks, nil
+	}
+	return nil, &NotLoadedError{edge: "tasks"}
+}
+
+// GoalsOrErr returns the Goals value or an error if the edge
+// was not loaded in eager-loading.
+func (e CategoryEdges) GoalsOrErr() ([]*Goal, error) {
+	if e.loadedTypes[2] {
+		return e.Goals, nil
+	}
+	return nil, &NotLoadedError{edge: "goals"}
+}
+
+// HobbiesOrErr returns the Hobbies value or an error if the edge
+// was not loaded in eager-loading.
+func (e CategoryEdges) HobbiesOrErr() ([]*Hobby, error) {
+	if e.loadedTypes[3] {
+		return e.Hobbies, nil
+	}
+	return nil, &NotLoadedError{edge: "hobbies"}
+}
+
 // UserOrErr returns the User value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e CategoryEdges) UserOrErr() (*User, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[4] {
 		if e.User == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: user.Label}
@@ -120,6 +153,21 @@ func (c *Category) Value(name string) (ent.Value, error) {
 // QuerySkills queries the "skills" edge of the Category entity.
 func (c *Category) QuerySkills() *SkillQuery {
 	return NewCategoryClient(c.config).QuerySkills(c)
+}
+
+// QueryTasks queries the "tasks" edge of the Category entity.
+func (c *Category) QueryTasks() *TaskQuery {
+	return NewCategoryClient(c.config).QueryTasks(c)
+}
+
+// QueryGoals queries the "goals" edge of the Category entity.
+func (c *Category) QueryGoals() *GoalQuery {
+	return NewCategoryClient(c.config).QueryGoals(c)
+}
+
+// QueryHobbies queries the "hobbies" edge of the Category entity.
+func (c *Category) QueryHobbies() *HobbyQuery {
+	return NewCategoryClient(c.config).QueryHobbies(c)
 }
 
 // QueryUser queries the "user" edge of the Category entity.

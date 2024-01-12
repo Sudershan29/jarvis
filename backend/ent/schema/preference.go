@@ -14,9 +14,9 @@ type Preference struct {
 // Fields of the Preference.
 func (Preference) Fields() []ent.Field {
 	return []ent.Field{
-		field.Bool("free_weekends").
+		field.Bool("free_weekends").	// Represents if users want a free weekend
             Default(false),
-		field.Int("weekly_frequency").
+		field.Int("weekly_frequency").	// Represents how many hours per week they are commiting to work
             Positive().
 			Optional(),
 	}
@@ -25,6 +25,7 @@ func (Preference) Fields() []ent.Field {
 // Edges of the Preference.
 func (Preference) Edges() []ent.Edge {
 	return []ent.Edge{
+		// O2O
         edge.From("user", User.Type).
             Ref("preference").
             Unique(),

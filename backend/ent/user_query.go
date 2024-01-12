@@ -4,9 +4,13 @@ package ent
 
 import (
 	"backend/ent/category"
+	"backend/ent/goal"
+	"backend/ent/hobby"
+	"backend/ent/meeting"
 	"backend/ent/predicate"
 	"backend/ent/preference"
 	"backend/ent/skill"
+	"backend/ent/task"
 	"backend/ent/user"
 	"context"
 	"database/sql/driver"
@@ -26,6 +30,10 @@ type UserQuery struct {
 	inters         []Interceptor
 	predicates     []predicate.User
 	withSkills     *SkillQuery
+	withTasks      *TaskQuery
+	withMeetings   *MeetingQuery
+	withHobbies    *HobbyQuery
+	withGoals      *GoalQuery
 	withCategories *CategoryQuery
 	withPreference *PreferenceQuery
 	// intermediate query (i.e. traversal path).
@@ -79,6 +87,94 @@ func (uq *UserQuery) QuerySkills() *SkillQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(skill.Table, skill.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.SkillsTable, user.SkillsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTasks chains the current query on the "tasks" edge.
+func (uq *UserQuery) QueryTasks() *TaskQuery {
+	query := (&TaskClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(task.Table, task.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.TasksTable, user.TasksColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryMeetings chains the current query on the "meetings" edge.
+func (uq *UserQuery) QueryMeetings() *MeetingQuery {
+	query := (&MeetingClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(meeting.Table, meeting.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.MeetingsTable, user.MeetingsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryHobbies chains the current query on the "hobbies" edge.
+func (uq *UserQuery) QueryHobbies() *HobbyQuery {
+	query := (&HobbyClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(hobby.Table, hobby.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.HobbiesTable, user.HobbiesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryGoals chains the current query on the "goals" edge.
+func (uq *UserQuery) QueryGoals() *GoalQuery {
+	query := (&GoalClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(goal.Table, goal.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.GoalsTable, user.GoalsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -323,6 +419,10 @@ func (uq *UserQuery) Clone() *UserQuery {
 		inters:         append([]Interceptor{}, uq.inters...),
 		predicates:     append([]predicate.User{}, uq.predicates...),
 		withSkills:     uq.withSkills.Clone(),
+		withTasks:      uq.withTasks.Clone(),
+		withMeetings:   uq.withMeetings.Clone(),
+		withHobbies:    uq.withHobbies.Clone(),
+		withGoals:      uq.withGoals.Clone(),
 		withCategories: uq.withCategories.Clone(),
 		withPreference: uq.withPreference.Clone(),
 		// clone intermediate query.
@@ -339,6 +439,50 @@ func (uq *UserQuery) WithSkills(opts ...func(*SkillQuery)) *UserQuery {
 		opt(query)
 	}
 	uq.withSkills = query
+	return uq
+}
+
+// WithTasks tells the query-builder to eager-load the nodes that are connected to
+// the "tasks" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithTasks(opts ...func(*TaskQuery)) *UserQuery {
+	query := (&TaskClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withTasks = query
+	return uq
+}
+
+// WithMeetings tells the query-builder to eager-load the nodes that are connected to
+// the "meetings" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithMeetings(opts ...func(*MeetingQuery)) *UserQuery {
+	query := (&MeetingClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withMeetings = query
+	return uq
+}
+
+// WithHobbies tells the query-builder to eager-load the nodes that are connected to
+// the "hobbies" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithHobbies(opts ...func(*HobbyQuery)) *UserQuery {
+	query := (&HobbyClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withHobbies = query
+	return uq
+}
+
+// WithGoals tells the query-builder to eager-load the nodes that are connected to
+// the "goals" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithGoals(opts ...func(*GoalQuery)) *UserQuery {
+	query := (&GoalClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withGoals = query
 	return uq
 }
 
@@ -442,8 +586,12 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [7]bool{
 			uq.withSkills != nil,
+			uq.withTasks != nil,
+			uq.withMeetings != nil,
+			uq.withHobbies != nil,
+			uq.withGoals != nil,
 			uq.withCategories != nil,
 			uq.withPreference != nil,
 		}
@@ -470,6 +618,34 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := uq.loadSkills(ctx, query, nodes,
 			func(n *User) { n.Edges.Skills = []*Skill{} },
 			func(n *User, e *Skill) { n.Edges.Skills = append(n.Edges.Skills, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withTasks; query != nil {
+		if err := uq.loadTasks(ctx, query, nodes,
+			func(n *User) { n.Edges.Tasks = []*Task{} },
+			func(n *User, e *Task) { n.Edges.Tasks = append(n.Edges.Tasks, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withMeetings; query != nil {
+		if err := uq.loadMeetings(ctx, query, nodes,
+			func(n *User) { n.Edges.Meetings = []*Meeting{} },
+			func(n *User, e *Meeting) { n.Edges.Meetings = append(n.Edges.Meetings, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withHobbies; query != nil {
+		if err := uq.loadHobbies(ctx, query, nodes,
+			func(n *User) { n.Edges.Hobbies = []*Hobby{} },
+			func(n *User, e *Hobby) { n.Edges.Hobbies = append(n.Edges.Hobbies, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withGoals; query != nil {
+		if err := uq.loadGoals(ctx, query, nodes,
+			func(n *User) { n.Edges.Goals = []*Goal{} },
+			func(n *User, e *Goal) { n.Edges.Goals = append(n.Edges.Goals, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -515,6 +691,130 @@ func (uq *UserQuery) loadSkills(ctx context.Context, query *SkillQuery, nodes []
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_skills" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadTasks(ctx context.Context, query *TaskQuery, nodes []*User, init func(*User), assign func(*User, *Task)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Task(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.TasksColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_tasks
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_tasks" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_tasks" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadMeetings(ctx context.Context, query *MeetingQuery, nodes []*User, init func(*User), assign func(*User, *Meeting)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Meeting(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.MeetingsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_meetings
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_meetings" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_meetings" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadHobbies(ctx context.Context, query *HobbyQuery, nodes []*User, init func(*User), assign func(*User, *Hobby)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Hobby(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.HobbiesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_hobbies
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_hobbies" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_hobbies" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadGoals(ctx context.Context, query *GoalQuery, nodes []*User, init func(*User), assign func(*User, *Goal)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Goal(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.GoalsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_goals
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_goals" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_goals" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

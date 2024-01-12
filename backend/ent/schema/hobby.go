@@ -7,34 +7,31 @@ import (
 	"entgo.io/ent/schema/edge"
 )
 
-// Skill holds the schema definition for the Skill entity.
-type Skill struct {
+// Hobby holds the schema definition for the Hobby entity.
+type Hobby struct {
 	ent.Schema
 }
 
-// Fields of the Skill.
-func (Skill) Fields() []ent.Field {
+// Fields of the Hobby.
+func (Hobby) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name"),
-		field.String("level"),
-		field.Int("progress").
-			Default(0),
-		field.Int("duration").	// Duration in days
-			Default(0),
+		field.String("description").
+			Optional(),
 		field.Time("created_at").
             Default(time.Now),
 	}
 }
 
-// Edges of the Skill.
-func (Skill) Edges() []ent.Edge {
+// Edges of the Hobby.
+func (Hobby) Edges() []ent.Edge {
 	return []ent.Edge{
 		// M2M
 		edge.From("categories", Category.Type).
-			Ref("skills"),
+			Ref("hobbies"),
 		// O2M
         edge.From("user", User.Type).
-			Ref("skills").
+			Ref("hobbies").
             Unique(),
     }
 }

@@ -4,8 +4,11 @@ package ent
 
 import (
 	"backend/ent/category"
+	"backend/ent/goal"
+	"backend/ent/hobby"
 	"backend/ent/predicate"
 	"backend/ent/skill"
+	"backend/ent/task"
 	"backend/ent/user"
 	"context"
 	"database/sql/driver"
@@ -20,13 +23,16 @@ import (
 // CategoryQuery is the builder for querying Category entities.
 type CategoryQuery struct {
 	config
-	ctx        *QueryContext
-	order      []category.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Category
-	withSkills *SkillQuery
-	withUser   *UserQuery
-	withFKs    bool
+	ctx         *QueryContext
+	order       []category.OrderOption
+	inters      []Interceptor
+	predicates  []predicate.Category
+	withSkills  *SkillQuery
+	withTasks   *TaskQuery
+	withGoals   *GoalQuery
+	withHobbies *HobbyQuery
+	withUser    *UserQuery
+	withFKs     bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -78,6 +84,72 @@ func (cq *CategoryQuery) QuerySkills() *SkillQuery {
 			sqlgraph.From(category.Table, category.FieldID, selector),
 			sqlgraph.To(skill.Table, skill.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, category.SkillsTable, category.SkillsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTasks chains the current query on the "tasks" edge.
+func (cq *CategoryQuery) QueryTasks() *TaskQuery {
+	query := (&TaskClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, selector),
+			sqlgraph.To(task.Table, task.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, category.TasksTable, category.TasksPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryGoals chains the current query on the "goals" edge.
+func (cq *CategoryQuery) QueryGoals() *GoalQuery {
+	query := (&GoalClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, selector),
+			sqlgraph.To(goal.Table, goal.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, category.GoalsTable, category.GoalsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryHobbies chains the current query on the "hobbies" edge.
+func (cq *CategoryQuery) QueryHobbies() *HobbyQuery {
+	query := (&HobbyClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, selector),
+			sqlgraph.To(hobby.Table, hobby.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, category.HobbiesTable, category.HobbiesPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
@@ -294,13 +366,16 @@ func (cq *CategoryQuery) Clone() *CategoryQuery {
 		return nil
 	}
 	return &CategoryQuery{
-		config:     cq.config,
-		ctx:        cq.ctx.Clone(),
-		order:      append([]category.OrderOption{}, cq.order...),
-		inters:     append([]Interceptor{}, cq.inters...),
-		predicates: append([]predicate.Category{}, cq.predicates...),
-		withSkills: cq.withSkills.Clone(),
-		withUser:   cq.withUser.Clone(),
+		config:      cq.config,
+		ctx:         cq.ctx.Clone(),
+		order:       append([]category.OrderOption{}, cq.order...),
+		inters:      append([]Interceptor{}, cq.inters...),
+		predicates:  append([]predicate.Category{}, cq.predicates...),
+		withSkills:  cq.withSkills.Clone(),
+		withTasks:   cq.withTasks.Clone(),
+		withGoals:   cq.withGoals.Clone(),
+		withHobbies: cq.withHobbies.Clone(),
+		withUser:    cq.withUser.Clone(),
 		// clone intermediate query.
 		sql:  cq.sql.Clone(),
 		path: cq.path,
@@ -315,6 +390,39 @@ func (cq *CategoryQuery) WithSkills(opts ...func(*SkillQuery)) *CategoryQuery {
 		opt(query)
 	}
 	cq.withSkills = query
+	return cq
+}
+
+// WithTasks tells the query-builder to eager-load the nodes that are connected to
+// the "tasks" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CategoryQuery) WithTasks(opts ...func(*TaskQuery)) *CategoryQuery {
+	query := (&TaskClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withTasks = query
+	return cq
+}
+
+// WithGoals tells the query-builder to eager-load the nodes that are connected to
+// the "goals" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CategoryQuery) WithGoals(opts ...func(*GoalQuery)) *CategoryQuery {
+	query := (&GoalClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withGoals = query
+	return cq
+}
+
+// WithHobbies tells the query-builder to eager-load the nodes that are connected to
+// the "hobbies" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CategoryQuery) WithHobbies(opts ...func(*HobbyQuery)) *CategoryQuery {
+	query := (&HobbyClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withHobbies = query
 	return cq
 }
 
@@ -408,8 +516,11 @@ func (cq *CategoryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cat
 		nodes       = []*Category{}
 		withFKs     = cq.withFKs
 		_spec       = cq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [5]bool{
 			cq.withSkills != nil,
+			cq.withTasks != nil,
+			cq.withGoals != nil,
+			cq.withHobbies != nil,
 			cq.withUser != nil,
 		}
 	)
@@ -441,6 +552,27 @@ func (cq *CategoryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cat
 		if err := cq.loadSkills(ctx, query, nodes,
 			func(n *Category) { n.Edges.Skills = []*Skill{} },
 			func(n *Category, e *Skill) { n.Edges.Skills = append(n.Edges.Skills, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := cq.withTasks; query != nil {
+		if err := cq.loadTasks(ctx, query, nodes,
+			func(n *Category) { n.Edges.Tasks = []*Task{} },
+			func(n *Category, e *Task) { n.Edges.Tasks = append(n.Edges.Tasks, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := cq.withGoals; query != nil {
+		if err := cq.loadGoals(ctx, query, nodes,
+			func(n *Category) { n.Edges.Goals = []*Goal{} },
+			func(n *Category, e *Goal) { n.Edges.Goals = append(n.Edges.Goals, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := cq.withHobbies; query != nil {
+		if err := cq.loadHobbies(ctx, query, nodes,
+			func(n *Category) { n.Edges.Hobbies = []*Hobby{} },
+			func(n *Category, e *Hobby) { n.Edges.Hobbies = append(n.Edges.Hobbies, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -507,6 +639,189 @@ func (cq *CategoryQuery) loadSkills(ctx context.Context, query *SkillQuery, node
 		nodes, ok := nids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected "skills" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (cq *CategoryQuery) loadTasks(ctx context.Context, query *TaskQuery, nodes []*Category, init func(*Category), assign func(*Category, *Task)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Category)
+	nids := make(map[int]map[*Category]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(category.TasksTable)
+		s.Join(joinT).On(s.C(task.FieldID), joinT.C(category.TasksPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(category.TasksPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(category.TasksPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Category]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*Task](ctx, query, qr, query.inters)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "tasks" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (cq *CategoryQuery) loadGoals(ctx context.Context, query *GoalQuery, nodes []*Category, init func(*Category), assign func(*Category, *Goal)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Category)
+	nids := make(map[int]map[*Category]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(category.GoalsTable)
+		s.Join(joinT).On(s.C(goal.FieldID), joinT.C(category.GoalsPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(category.GoalsPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(category.GoalsPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Category]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*Goal](ctx, query, qr, query.inters)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "goals" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (cq *CategoryQuery) loadHobbies(ctx context.Context, query *HobbyQuery, nodes []*Category, init func(*Category), assign func(*Category, *Hobby)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Category)
+	nids := make(map[int]map[*Category]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(category.HobbiesTable)
+		s.Join(joinT).On(s.C(hobby.FieldID), joinT.C(category.HobbiesPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(category.HobbiesPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(category.HobbiesPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Category]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*Hobby](ctx, query, qr, query.inters)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "hobbies" node returned %v`, n.ID)
 		}
 		for kn := range nodes {
 			assign(kn, n)

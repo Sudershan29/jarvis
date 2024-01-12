@@ -41,13 +41,21 @@ type User struct {
 type UserEdges struct {
 	// Skills holds the value of the skills edge.
 	Skills []*Skill `json:"skills,omitempty"`
+	// Tasks holds the value of the tasks edge.
+	Tasks []*Task `json:"tasks,omitempty"`
+	// Meetings holds the value of the meetings edge.
+	Meetings []*Meeting `json:"meetings,omitempty"`
+	// Hobbies holds the value of the hobbies edge.
+	Hobbies []*Hobby `json:"hobbies,omitempty"`
+	// Goals holds the value of the goals edge.
+	Goals []*Goal `json:"goals,omitempty"`
 	// Categories holds the value of the categories edge.
 	Categories []*Category `json:"categories,omitempty"`
 	// Preference holds the value of the preference edge.
 	Preference *Preference `json:"preference,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [7]bool
 }
 
 // SkillsOrErr returns the Skills value or an error if the edge
@@ -59,10 +67,46 @@ func (e UserEdges) SkillsOrErr() ([]*Skill, error) {
 	return nil, &NotLoadedError{edge: "skills"}
 }
 
+// TasksOrErr returns the Tasks value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) TasksOrErr() ([]*Task, error) {
+	if e.loadedTypes[1] {
+		return e.Tasks, nil
+	}
+	return nil, &NotLoadedError{edge: "tasks"}
+}
+
+// MeetingsOrErr returns the Meetings value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) MeetingsOrErr() ([]*Meeting, error) {
+	if e.loadedTypes[2] {
+		return e.Meetings, nil
+	}
+	return nil, &NotLoadedError{edge: "meetings"}
+}
+
+// HobbiesOrErr returns the Hobbies value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) HobbiesOrErr() ([]*Hobby, error) {
+	if e.loadedTypes[3] {
+		return e.Hobbies, nil
+	}
+	return nil, &NotLoadedError{edge: "hobbies"}
+}
+
+// GoalsOrErr returns the Goals value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) GoalsOrErr() ([]*Goal, error) {
+	if e.loadedTypes[4] {
+		return e.Goals, nil
+	}
+	return nil, &NotLoadedError{edge: "goals"}
+}
+
 // CategoriesOrErr returns the Categories value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) CategoriesOrErr() ([]*Category, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[5] {
 		return e.Categories, nil
 	}
 	return nil, &NotLoadedError{edge: "categories"}
@@ -71,7 +115,7 @@ func (e UserEdges) CategoriesOrErr() ([]*Category, error) {
 // PreferenceOrErr returns the Preference value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e UserEdges) PreferenceOrErr() (*Preference, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[6] {
 		if e.Preference == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: preference.Label}
@@ -169,6 +213,26 @@ func (u *User) Value(name string) (ent.Value, error) {
 // QuerySkills queries the "skills" edge of the User entity.
 func (u *User) QuerySkills() *SkillQuery {
 	return NewUserClient(u.config).QuerySkills(u)
+}
+
+// QueryTasks queries the "tasks" edge of the User entity.
+func (u *User) QueryTasks() *TaskQuery {
+	return NewUserClient(u.config).QueryTasks(u)
+}
+
+// QueryMeetings queries the "meetings" edge of the User entity.
+func (u *User) QueryMeetings() *MeetingQuery {
+	return NewUserClient(u.config).QueryMeetings(u)
+}
+
+// QueryHobbies queries the "hobbies" edge of the User entity.
+func (u *User) QueryHobbies() *HobbyQuery {
+	return NewUserClient(u.config).QueryHobbies(u)
+}
+
+// QueryGoals queries the "goals" edge of the User entity.
+func (u *User) QueryGoals() *GoalQuery {
+	return NewUserClient(u.config).QueryGoals(u)
 }
 
 // QueryCategories queries the "categories" edge of the User entity.

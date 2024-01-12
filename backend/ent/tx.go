@@ -14,10 +14,18 @@ type Tx struct {
 	config
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
+	// Goal is the client for interacting with the Goal builders.
+	Goal *GoalClient
+	// Hobby is the client for interacting with the Hobby builders.
+	Hobby *HobbyClient
+	// Meeting is the client for interacting with the Meeting builders.
+	Meeting *MeetingClient
 	// Preference is the client for interacting with the Preference builders.
 	Preference *PreferenceClient
 	// Skill is the client for interacting with the Skill builders.
 	Skill *SkillClient
+	// Task is the client for interacting with the Task builders.
+	Task *TaskClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -152,8 +160,12 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Category = NewCategoryClient(tx.config)
+	tx.Goal = NewGoalClient(tx.config)
+	tx.Hobby = NewHobbyClient(tx.config)
+	tx.Meeting = NewMeetingClient(tx.config)
 	tx.Preference = NewPreferenceClient(tx.config)
 	tx.Skill = NewSkillClient(tx.config)
+	tx.Task = NewTaskClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

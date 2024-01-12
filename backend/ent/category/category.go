@@ -16,6 +16,12 @@ const (
 	FieldName = "name"
 	// EdgeSkills holds the string denoting the skills edge name in mutations.
 	EdgeSkills = "skills"
+	// EdgeTasks holds the string denoting the tasks edge name in mutations.
+	EdgeTasks = "tasks"
+	// EdgeGoals holds the string denoting the goals edge name in mutations.
+	EdgeGoals = "goals"
+	// EdgeHobbies holds the string denoting the hobbies edge name in mutations.
+	EdgeHobbies = "hobbies"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// Table holds the table name of the category in the database.
@@ -25,6 +31,21 @@ const (
 	// SkillsInverseTable is the table name for the Skill entity.
 	// It exists in this package in order to avoid circular dependency with the "skill" package.
 	SkillsInverseTable = "skills"
+	// TasksTable is the table that holds the tasks relation/edge. The primary key declared below.
+	TasksTable = "category_tasks"
+	// TasksInverseTable is the table name for the Task entity.
+	// It exists in this package in order to avoid circular dependency with the "task" package.
+	TasksInverseTable = "tasks"
+	// GoalsTable is the table that holds the goals relation/edge. The primary key declared below.
+	GoalsTable = "category_goals"
+	// GoalsInverseTable is the table name for the Goal entity.
+	// It exists in this package in order to avoid circular dependency with the "goal" package.
+	GoalsInverseTable = "goals"
+	// HobbiesTable is the table that holds the hobbies relation/edge. The primary key declared below.
+	HobbiesTable = "category_hobbies"
+	// HobbiesInverseTable is the table name for the Hobby entity.
+	// It exists in this package in order to avoid circular dependency with the "hobby" package.
+	HobbiesInverseTable = "hobbies"
 	// UserTable is the table that holds the user relation/edge.
 	UserTable = "categories"
 	// UserInverseTable is the table name for the User entity.
@@ -50,6 +71,15 @@ var (
 	// SkillsPrimaryKey and SkillsColumn2 are the table columns denoting the
 	// primary key for the skills relation (M2M).
 	SkillsPrimaryKey = []string{"category_id", "skill_id"}
+	// TasksPrimaryKey and TasksColumn2 are the table columns denoting the
+	// primary key for the tasks relation (M2M).
+	TasksPrimaryKey = []string{"category_id", "task_id"}
+	// GoalsPrimaryKey and GoalsColumn2 are the table columns denoting the
+	// primary key for the goals relation (M2M).
+	GoalsPrimaryKey = []string{"category_id", "goal_id"}
+	// HobbiesPrimaryKey and HobbiesColumn2 are the table columns denoting the
+	// primary key for the hobbies relation (M2M).
+	HobbiesPrimaryKey = []string{"category_id", "hobby_id"}
 )
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -94,6 +124,48 @@ func BySkills(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByTasksCount orders the results by tasks count.
+func ByTasksCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newTasksStep(), opts...)
+	}
+}
+
+// ByTasks orders the results by tasks terms.
+func ByTasks(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTasksStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByGoalsCount orders the results by goals count.
+func ByGoalsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newGoalsStep(), opts...)
+	}
+}
+
+// ByGoals orders the results by goals terms.
+func ByGoals(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newGoalsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByHobbiesCount orders the results by hobbies count.
+func ByHobbiesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newHobbiesStep(), opts...)
+	}
+}
+
+// ByHobbies orders the results by hobbies terms.
+func ByHobbies(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newHobbiesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByUserField orders the results by user field.
 func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -105,6 +177,27 @@ func newSkillsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SkillsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2M, false, SkillsTable, SkillsPrimaryKey...),
+	)
+}
+func newTasksStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TasksInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, TasksTable, TasksPrimaryKey...),
+	)
+}
+func newGoalsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(GoalsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, GoalsTable, GoalsPrimaryKey...),
+	)
+}
+func newHobbiesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(HobbiesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, HobbiesTable, HobbiesPrimaryKey...),
 	)
 }
 func newUserStep() *sqlgraph.Step {
