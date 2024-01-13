@@ -4,8 +4,11 @@ package ent
 
 import (
 	"backend/ent/category"
+	"backend/ent/goal"
+	"backend/ent/hobby"
 	"backend/ent/predicate"
 	"backend/ent/skill"
+	"backend/ent/task"
 	"backend/ent/user"
 	"context"
 	"errors"
@@ -48,6 +51,51 @@ func (cu *CategoryUpdate) AddSkills(s ...*Skill) *CategoryUpdate {
 		ids[i] = s[i].ID
 	}
 	return cu.AddSkillIDs(ids...)
+}
+
+// AddTaskIDs adds the "tasks" edge to the Task entity by IDs.
+func (cu *CategoryUpdate) AddTaskIDs(ids ...int) *CategoryUpdate {
+	cu.mutation.AddTaskIDs(ids...)
+	return cu
+}
+
+// AddTasks adds the "tasks" edges to the Task entity.
+func (cu *CategoryUpdate) AddTasks(t ...*Task) *CategoryUpdate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return cu.AddTaskIDs(ids...)
+}
+
+// AddGoalIDs adds the "goals" edge to the Goal entity by IDs.
+func (cu *CategoryUpdate) AddGoalIDs(ids ...int) *CategoryUpdate {
+	cu.mutation.AddGoalIDs(ids...)
+	return cu
+}
+
+// AddGoals adds the "goals" edges to the Goal entity.
+func (cu *CategoryUpdate) AddGoals(g ...*Goal) *CategoryUpdate {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return cu.AddGoalIDs(ids...)
+}
+
+// AddHobbyIDs adds the "hobbies" edge to the Hobby entity by IDs.
+func (cu *CategoryUpdate) AddHobbyIDs(ids ...int) *CategoryUpdate {
+	cu.mutation.AddHobbyIDs(ids...)
+	return cu
+}
+
+// AddHobbies adds the "hobbies" edges to the Hobby entity.
+func (cu *CategoryUpdate) AddHobbies(h ...*Hobby) *CategoryUpdate {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return cu.AddHobbyIDs(ids...)
 }
 
 // SetUserID sets the "user" edge to the User entity by ID.
@@ -93,6 +141,69 @@ func (cu *CategoryUpdate) RemoveSkills(s ...*Skill) *CategoryUpdate {
 		ids[i] = s[i].ID
 	}
 	return cu.RemoveSkillIDs(ids...)
+}
+
+// ClearTasks clears all "tasks" edges to the Task entity.
+func (cu *CategoryUpdate) ClearTasks() *CategoryUpdate {
+	cu.mutation.ClearTasks()
+	return cu
+}
+
+// RemoveTaskIDs removes the "tasks" edge to Task entities by IDs.
+func (cu *CategoryUpdate) RemoveTaskIDs(ids ...int) *CategoryUpdate {
+	cu.mutation.RemoveTaskIDs(ids...)
+	return cu
+}
+
+// RemoveTasks removes "tasks" edges to Task entities.
+func (cu *CategoryUpdate) RemoveTasks(t ...*Task) *CategoryUpdate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return cu.RemoveTaskIDs(ids...)
+}
+
+// ClearGoals clears all "goals" edges to the Goal entity.
+func (cu *CategoryUpdate) ClearGoals() *CategoryUpdate {
+	cu.mutation.ClearGoals()
+	return cu
+}
+
+// RemoveGoalIDs removes the "goals" edge to Goal entities by IDs.
+func (cu *CategoryUpdate) RemoveGoalIDs(ids ...int) *CategoryUpdate {
+	cu.mutation.RemoveGoalIDs(ids...)
+	return cu
+}
+
+// RemoveGoals removes "goals" edges to Goal entities.
+func (cu *CategoryUpdate) RemoveGoals(g ...*Goal) *CategoryUpdate {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return cu.RemoveGoalIDs(ids...)
+}
+
+// ClearHobbies clears all "hobbies" edges to the Hobby entity.
+func (cu *CategoryUpdate) ClearHobbies() *CategoryUpdate {
+	cu.mutation.ClearHobbies()
+	return cu
+}
+
+// RemoveHobbyIDs removes the "hobbies" edge to Hobby entities by IDs.
+func (cu *CategoryUpdate) RemoveHobbyIDs(ids ...int) *CategoryUpdate {
+	cu.mutation.RemoveHobbyIDs(ids...)
+	return cu
+}
+
+// RemoveHobbies removes "hobbies" edges to Hobby entities.
+func (cu *CategoryUpdate) RemoveHobbies(h ...*Hobby) *CategoryUpdate {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return cu.RemoveHobbyIDs(ids...)
 }
 
 // ClearUser clears the "user" edge to the User entity.
@@ -185,6 +296,141 @@ func (cu *CategoryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if cu.mutation.TasksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.TasksTable,
+			Columns: category.TasksPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(task.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedTasksIDs(); len(nodes) > 0 && !cu.mutation.TasksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.TasksTable,
+			Columns: category.TasksPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(task.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.TasksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.TasksTable,
+			Columns: category.TasksPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(task.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cu.mutation.GoalsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.GoalsTable,
+			Columns: category.GoalsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedGoalsIDs(); len(nodes) > 0 && !cu.mutation.GoalsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.GoalsTable,
+			Columns: category.GoalsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.GoalsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.GoalsTable,
+			Columns: category.GoalsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cu.mutation.HobbiesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.HobbiesTable,
+			Columns: category.HobbiesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hobby.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedHobbiesIDs(); len(nodes) > 0 && !cu.mutation.HobbiesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.HobbiesTable,
+			Columns: category.HobbiesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hobby.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.HobbiesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.HobbiesTable,
+			Columns: category.HobbiesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hobby.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if cu.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -255,6 +501,51 @@ func (cuo *CategoryUpdateOne) AddSkills(s ...*Skill) *CategoryUpdateOne {
 	return cuo.AddSkillIDs(ids...)
 }
 
+// AddTaskIDs adds the "tasks" edge to the Task entity by IDs.
+func (cuo *CategoryUpdateOne) AddTaskIDs(ids ...int) *CategoryUpdateOne {
+	cuo.mutation.AddTaskIDs(ids...)
+	return cuo
+}
+
+// AddTasks adds the "tasks" edges to the Task entity.
+func (cuo *CategoryUpdateOne) AddTasks(t ...*Task) *CategoryUpdateOne {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return cuo.AddTaskIDs(ids...)
+}
+
+// AddGoalIDs adds the "goals" edge to the Goal entity by IDs.
+func (cuo *CategoryUpdateOne) AddGoalIDs(ids ...int) *CategoryUpdateOne {
+	cuo.mutation.AddGoalIDs(ids...)
+	return cuo
+}
+
+// AddGoals adds the "goals" edges to the Goal entity.
+func (cuo *CategoryUpdateOne) AddGoals(g ...*Goal) *CategoryUpdateOne {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return cuo.AddGoalIDs(ids...)
+}
+
+// AddHobbyIDs adds the "hobbies" edge to the Hobby entity by IDs.
+func (cuo *CategoryUpdateOne) AddHobbyIDs(ids ...int) *CategoryUpdateOne {
+	cuo.mutation.AddHobbyIDs(ids...)
+	return cuo
+}
+
+// AddHobbies adds the "hobbies" edges to the Hobby entity.
+func (cuo *CategoryUpdateOne) AddHobbies(h ...*Hobby) *CategoryUpdateOne {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return cuo.AddHobbyIDs(ids...)
+}
+
 // SetUserID sets the "user" edge to the User entity by ID.
 func (cuo *CategoryUpdateOne) SetUserID(id int) *CategoryUpdateOne {
 	cuo.mutation.SetUserID(id)
@@ -298,6 +589,69 @@ func (cuo *CategoryUpdateOne) RemoveSkills(s ...*Skill) *CategoryUpdateOne {
 		ids[i] = s[i].ID
 	}
 	return cuo.RemoveSkillIDs(ids...)
+}
+
+// ClearTasks clears all "tasks" edges to the Task entity.
+func (cuo *CategoryUpdateOne) ClearTasks() *CategoryUpdateOne {
+	cuo.mutation.ClearTasks()
+	return cuo
+}
+
+// RemoveTaskIDs removes the "tasks" edge to Task entities by IDs.
+func (cuo *CategoryUpdateOne) RemoveTaskIDs(ids ...int) *CategoryUpdateOne {
+	cuo.mutation.RemoveTaskIDs(ids...)
+	return cuo
+}
+
+// RemoveTasks removes "tasks" edges to Task entities.
+func (cuo *CategoryUpdateOne) RemoveTasks(t ...*Task) *CategoryUpdateOne {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return cuo.RemoveTaskIDs(ids...)
+}
+
+// ClearGoals clears all "goals" edges to the Goal entity.
+func (cuo *CategoryUpdateOne) ClearGoals() *CategoryUpdateOne {
+	cuo.mutation.ClearGoals()
+	return cuo
+}
+
+// RemoveGoalIDs removes the "goals" edge to Goal entities by IDs.
+func (cuo *CategoryUpdateOne) RemoveGoalIDs(ids ...int) *CategoryUpdateOne {
+	cuo.mutation.RemoveGoalIDs(ids...)
+	return cuo
+}
+
+// RemoveGoals removes "goals" edges to Goal entities.
+func (cuo *CategoryUpdateOne) RemoveGoals(g ...*Goal) *CategoryUpdateOne {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return cuo.RemoveGoalIDs(ids...)
+}
+
+// ClearHobbies clears all "hobbies" edges to the Hobby entity.
+func (cuo *CategoryUpdateOne) ClearHobbies() *CategoryUpdateOne {
+	cuo.mutation.ClearHobbies()
+	return cuo
+}
+
+// RemoveHobbyIDs removes the "hobbies" edge to Hobby entities by IDs.
+func (cuo *CategoryUpdateOne) RemoveHobbyIDs(ids ...int) *CategoryUpdateOne {
+	cuo.mutation.RemoveHobbyIDs(ids...)
+	return cuo
+}
+
+// RemoveHobbies removes "hobbies" edges to Hobby entities.
+func (cuo *CategoryUpdateOne) RemoveHobbies(h ...*Hobby) *CategoryUpdateOne {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return cuo.RemoveHobbyIDs(ids...)
 }
 
 // ClearUser clears the "user" edge to the User entity.
@@ -413,6 +767,141 @@ func (cuo *CategoryUpdateOne) sqlSave(ctx context.Context) (_node *Category, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.TasksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.TasksTable,
+			Columns: category.TasksPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(task.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedTasksIDs(); len(nodes) > 0 && !cuo.mutation.TasksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.TasksTable,
+			Columns: category.TasksPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(task.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.TasksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.TasksTable,
+			Columns: category.TasksPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(task.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.GoalsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.GoalsTable,
+			Columns: category.GoalsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedGoalsIDs(); len(nodes) > 0 && !cuo.mutation.GoalsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.GoalsTable,
+			Columns: category.GoalsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.GoalsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.GoalsTable,
+			Columns: category.GoalsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.HobbiesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.HobbiesTable,
+			Columns: category.HobbiesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hobby.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedHobbiesIDs(); len(nodes) > 0 && !cuo.mutation.HobbiesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.HobbiesTable,
+			Columns: category.HobbiesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hobby.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.HobbiesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   category.HobbiesTable,
+			Columns: category.HobbiesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hobby.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

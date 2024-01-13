@@ -4,8 +4,12 @@ package ent
 
 import (
 	"backend/ent/category"
+	"backend/ent/goal"
+	"backend/ent/hobby"
+	"backend/ent/meeting"
 	"backend/ent/preference"
 	"backend/ent/skill"
+	"backend/ent/task"
 	"backend/ent/user"
 	"context"
 	"errors"
@@ -97,6 +101,66 @@ func (uc *UserCreate) AddSkills(s ...*Skill) *UserCreate {
 		ids[i] = s[i].ID
 	}
 	return uc.AddSkillIDs(ids...)
+}
+
+// AddTaskIDs adds the "tasks" edge to the Task entity by IDs.
+func (uc *UserCreate) AddTaskIDs(ids ...int) *UserCreate {
+	uc.mutation.AddTaskIDs(ids...)
+	return uc
+}
+
+// AddTasks adds the "tasks" edges to the Task entity.
+func (uc *UserCreate) AddTasks(t ...*Task) *UserCreate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uc.AddTaskIDs(ids...)
+}
+
+// AddMeetingIDs adds the "meetings" edge to the Meeting entity by IDs.
+func (uc *UserCreate) AddMeetingIDs(ids ...int) *UserCreate {
+	uc.mutation.AddMeetingIDs(ids...)
+	return uc
+}
+
+// AddMeetings adds the "meetings" edges to the Meeting entity.
+func (uc *UserCreate) AddMeetings(m ...*Meeting) *UserCreate {
+	ids := make([]int, len(m))
+	for i := range m {
+		ids[i] = m[i].ID
+	}
+	return uc.AddMeetingIDs(ids...)
+}
+
+// AddHobbyIDs adds the "hobbies" edge to the Hobby entity by IDs.
+func (uc *UserCreate) AddHobbyIDs(ids ...int) *UserCreate {
+	uc.mutation.AddHobbyIDs(ids...)
+	return uc
+}
+
+// AddHobbies adds the "hobbies" edges to the Hobby entity.
+func (uc *UserCreate) AddHobbies(h ...*Hobby) *UserCreate {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return uc.AddHobbyIDs(ids...)
+}
+
+// AddGoalIDs adds the "goals" edge to the Goal entity by IDs.
+func (uc *UserCreate) AddGoalIDs(ids ...int) *UserCreate {
+	uc.mutation.AddGoalIDs(ids...)
+	return uc
+}
+
+// AddGoals adds the "goals" edges to the Goal entity.
+func (uc *UserCreate) AddGoals(g ...*Goal) *UserCreate {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return uc.AddGoalIDs(ids...)
 }
 
 // AddCategoryIDs adds the "categories" edge to the Category entity by IDs.
@@ -261,6 +325,70 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.TasksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TasksTable,
+			Columns: []string{user.TasksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(task.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.MeetingsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.MeetingsTable,
+			Columns: []string{user.MeetingsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(meeting.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.HobbiesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.HobbiesTable,
+			Columns: []string{user.HobbiesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hobby.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.GoalsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.GoalsTable,
+			Columns: []string{user.GoalsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(goal.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

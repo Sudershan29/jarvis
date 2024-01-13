@@ -20,6 +20,42 @@ func (f CategoryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CategoryMutation", m)
 }
 
+// The GoalFunc type is an adapter to allow the use of ordinary
+// function as Goal mutator.
+type GoalFunc func(context.Context, *ent.GoalMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GoalFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GoalMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GoalMutation", m)
+}
+
+// The HobbyFunc type is an adapter to allow the use of ordinary
+// function as Hobby mutator.
+type HobbyFunc func(context.Context, *ent.HobbyMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f HobbyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.HobbyMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HobbyMutation", m)
+}
+
+// The MeetingFunc type is an adapter to allow the use of ordinary
+// function as Meeting mutator.
+type MeetingFunc func(context.Context, *ent.MeetingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MeetingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MeetingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MeetingMutation", m)
+}
+
 // The PreferenceFunc type is an adapter to allow the use of ordinary
 // function as Preference mutator.
 type PreferenceFunc func(context.Context, *ent.PreferenceMutation) (ent.Value, error)
@@ -42,6 +78,18 @@ func (f SkillFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SkillMutation", m)
+}
+
+// The TaskFunc type is an adapter to allow the use of ordinary
+// function as Task mutator.
+type TaskFunc func(context.Context, *ent.TaskMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TaskFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TaskMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TaskMutation", m)
 }
 
 // The UserFunc type is an adapter to allow the use of ordinary

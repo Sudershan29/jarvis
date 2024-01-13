@@ -1,16 +1,19 @@
 # Introduction
 
+## Aim
+
+1. This is an app that is aimed to improve productivity by helping you scheduling your everyday activities like tasks, meetings, etc.
+2. The app offers intergration with your google calendar, and automatically propose a best schedule to complete your tasks.
+
 ## Motivation
 
-    This will be an app dedicated to help develop, manage and master skills. The name of the project was carefully researched and named after 2 seconds of thinking 
-    
-    
-    (NOTE: The project will undergo exactly 14,000,605 name changes)
+1. Improve productivity, and set realistic goals for the year
+2. Plan events by looking at multiple people's calendars
 
 ## Tech Stack
 
-1. Backend : GoLang
-2. Frontend : Hmmm
+1. Backend  : GoLang
+2. Frontend : ReactJs
 
 ## Story
 

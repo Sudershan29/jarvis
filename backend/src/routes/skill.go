@@ -7,6 +7,6 @@ import (
 )
 
 func SkillRoute(g *gin.RouterGroup) {
-	g.POST("/"   , controllers.SkillCreate)
-	g.GET("/"   , controllers.SkillAll)
+	g.GET(""   , controllers.SkillAll)
+	g.POST(""   , controllers.SkillCreate)
 }

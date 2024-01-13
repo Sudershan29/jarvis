@@ -28,6 +28,76 @@ var (
 			},
 		},
 	}
+	// GoalsColumns holds the columns for the "goals" table.
+	GoalsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_goals", Type: field.TypeInt, Nullable: true},
+	}
+	// GoalsTable holds the schema information for the "goals" table.
+	GoalsTable = &schema.Table{
+		Name:       "goals",
+		Columns:    GoalsColumns,
+		PrimaryKey: []*schema.Column{GoalsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "goals_users_goals",
+				Columns:    []*schema.Column{GoalsColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// HobbiesColumns holds the columns for the "hobbies" table.
+	HobbiesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_hobbies", Type: field.TypeInt, Nullable: true},
+	}
+	// HobbiesTable holds the schema information for the "hobbies" table.
+	HobbiesTable = &schema.Table{
+		Name:       "hobbies",
+		Columns:    HobbiesColumns,
+		PrimaryKey: []*schema.Column{HobbiesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "hobbies_users_hobbies",
+				Columns:    []*schema.Column{HobbiesColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// MeetingsColumns holds the columns for the "meetings" table.
+	MeetingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "where", Type: field.TypeString, Nullable: true},
+		{Name: "whom", Type: field.TypeString, Nullable: true},
+		{Name: "duration", Type: field.TypeInt, Default: 0},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "when", Type: field.TypeTime, Nullable: true},
+		{Name: "user_meetings", Type: field.TypeInt, Nullable: true},
+	}
+	// MeetingsTable holds the schema information for the "meetings" table.
+	MeetingsTable = &schema.Table{
+		Name:       "meetings",
+		Columns:    MeetingsColumns,
+		PrimaryKey: []*schema.Column{MeetingsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "meetings_users_meetings",
+				Columns:    []*schema.Column{MeetingsColumns[8]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// PreferencesColumns holds the columns for the "preferences" table.
 	PreferencesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -68,6 +138,30 @@ var (
 			{
 				Symbol:     "skills_users_skills",
 				Columns:    []*schema.Column{SkillsColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// TasksColumns holds the columns for the "tasks" table.
+	TasksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "duration", Type: field.TypeInt, Default: 0},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "deadline", Type: field.TypeTime, Nullable: true},
+		{Name: "user_tasks", Type: field.TypeInt, Nullable: true},
+	}
+	// TasksTable holds the schema information for the "tasks" table.
+	TasksTable = &schema.Table{
+		Name:       "tasks",
+		Columns:    TasksColumns,
+		PrimaryKey: []*schema.Column{TasksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "tasks_users_tasks",
+				Columns:    []*schema.Column{TasksColumns[6]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -121,20 +215,112 @@ var (
 			},
 		},
 	}
+	// CategoryTasksColumns holds the columns for the "category_tasks" table.
+	CategoryTasksColumns = []*schema.Column{
+		{Name: "category_id", Type: field.TypeInt},
+		{Name: "task_id", Type: field.TypeInt},
+	}
+	// CategoryTasksTable holds the schema information for the "category_tasks" table.
+	CategoryTasksTable = &schema.Table{
+		Name:       "category_tasks",
+		Columns:    CategoryTasksColumns,
+		PrimaryKey: []*schema.Column{CategoryTasksColumns[0], CategoryTasksColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "category_tasks_category_id",
+				Columns:    []*schema.Column{CategoryTasksColumns[0]},
+				RefColumns: []*schema.Column{CategoriesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "category_tasks_task_id",
+				Columns:    []*schema.Column{CategoryTasksColumns[1]},
+				RefColumns: []*schema.Column{TasksColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
+	// CategoryGoalsColumns holds the columns for the "category_goals" table.
+	CategoryGoalsColumns = []*schema.Column{
+		{Name: "category_id", Type: field.TypeInt},
+		{Name: "goal_id", Type: field.TypeInt},
+	}
+	// CategoryGoalsTable holds the schema information for the "category_goals" table.
+	CategoryGoalsTable = &schema.Table{
+		Name:       "category_goals",
+		Columns:    CategoryGoalsColumns,
+		PrimaryKey: []*schema.Column{CategoryGoalsColumns[0], CategoryGoalsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "category_goals_category_id",
+				Columns:    []*schema.Column{CategoryGoalsColumns[0]},
+				RefColumns: []*schema.Column{CategoriesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "category_goals_goal_id",
+				Columns:    []*schema.Column{CategoryGoalsColumns[1]},
+				RefColumns: []*schema.Column{GoalsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
+	// CategoryHobbiesColumns holds the columns for the "category_hobbies" table.
+	CategoryHobbiesColumns = []*schema.Column{
+		{Name: "category_id", Type: field.TypeInt},
+		{Name: "hobby_id", Type: field.TypeInt},
+	}
+	// CategoryHobbiesTable holds the schema information for the "category_hobbies" table.
+	CategoryHobbiesTable = &schema.Table{
+		Name:       "category_hobbies",
+		Columns:    CategoryHobbiesColumns,
+		PrimaryKey: []*schema.Column{CategoryHobbiesColumns[0], CategoryHobbiesColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "category_hobbies_category_id",
+				Columns:    []*schema.Column{CategoryHobbiesColumns[0]},
+				RefColumns: []*schema.Column{CategoriesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "category_hobbies_hobby_id",
+				Columns:    []*schema.Column{CategoryHobbiesColumns[1]},
+				RefColumns: []*schema.Column{HobbiesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		CategoriesTable,
+		GoalsTable,
+		HobbiesTable,
+		MeetingsTable,
 		PreferencesTable,
 		SkillsTable,
+		TasksTable,
 		UsersTable,
 		CategorySkillsTable,
+		CategoryTasksTable,
+		CategoryGoalsTable,
+		CategoryHobbiesTable,
 	}
 )
 
 func init() {
 	CategoriesTable.ForeignKeys[0].RefTable = UsersTable
+	GoalsTable.ForeignKeys[0].RefTable = UsersTable
+	HobbiesTable.ForeignKeys[0].RefTable = UsersTable
+	MeetingsTable.ForeignKeys[0].RefTable = UsersTable
 	PreferencesTable.ForeignKeys[0].RefTable = UsersTable
 	SkillsTable.ForeignKeys[0].RefTable = UsersTable
+	TasksTable.ForeignKeys[0].RefTable = UsersTable
 	CategorySkillsTable.ForeignKeys[0].RefTable = CategoriesTable
 	CategorySkillsTable.ForeignKeys[1].RefTable = SkillsTable
+	CategoryTasksTable.ForeignKeys[0].RefTable = CategoriesTable
+	CategoryTasksTable.ForeignKeys[1].RefTable = TasksTable
+	CategoryGoalsTable.ForeignKeys[0].RefTable = CategoriesTable
+	CategoryGoalsTable.ForeignKeys[1].RefTable = GoalsTable
+	CategoryHobbiesTable.ForeignKeys[0].RefTable = CategoriesTable
+	CategoryHobbiesTable.ForeignKeys[1].RefTable = HobbiesTable
 }

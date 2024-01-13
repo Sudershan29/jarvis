@@ -29,8 +29,10 @@ func (Skill) Fields() []ent.Field {
 // Edges of the Skill.
 func (Skill) Edges() []ent.Edge {
 	return []ent.Edge{
+		// M2M
 		edge.From("categories", Category.Type).
 			Ref("skills"),
+		// O2M
         edge.From("user", User.Type).
 			Ref("skills").
             Unique(),

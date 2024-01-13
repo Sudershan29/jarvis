@@ -34,8 +34,14 @@ func (User) Fields() []ent.Field {
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
+        // O2M
         edge.To("skills", Skill.Type),
+        edge.To("tasks", Task.Type),
+        edge.To("meetings", Meeting.Type),
+        edge.To("hobbies", Hobby.Type),
+        edge.To("goals", Goal.Type),
         edge.To("categories", Category.Type),
+        // O2O
         edge.To("preference", Preference.Type).
             Unique(),
     }

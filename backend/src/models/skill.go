@@ -18,6 +18,24 @@ type SkillJSON struct {
 	Categories []string `json:categories`
 }
 
+func (s SkillModel) Categories() ([]*ent.Category, error){
+	dbClient := lib.DbCtx
+	return s.Skill.QueryCategories().All(dbClient.Context)
+}
+
+func (s SkillModel) Marshal() SkillJSON {
+	catArr := make([]string, 0)
+	categories, _ := s.Categories()
+	for _, cat := range categories { catArr = append(catArr, cat.Name) }
+	return SkillJSON{s.Skill.Name, s.Skill.Level, s.Skill.Duration, catArr}
+}
+
+/* * * * * * * * * * * * 
+
+		APIs
+
+* * * * * * * * * * * * */
+
 func SkillCreate(name, level string, duration int, categories []string, currUser *JwtUser) (*SkillModel, error) {
 	currUser.Load()
 	dbClient := lib.DbCtx
@@ -58,16 +76,4 @@ func SkillShowAll(currUser *JwtUser) ([]*SkillModel, error) {
 		result = append(result, &SkillModel{skill})
 	}
 	return result, nil
-}
-
-func (s SkillModel) Categories() ([]*ent.Category, error){
-	dbClient := lib.DbCtx
-	return s.Skill.QueryCategories().All(dbClient.Context)
-}
-
-func (s SkillModel) Marshal() SkillJSON {
-	catArr := make([]string, 0)
-	categories, _ := s.Categories()
-	for _, cat := range categories { catArr = append(catArr, cat.Name) }
-	return SkillJSON{s.Skill.Name, s.Skill.Level, s.Skill.Duration, catArr}
 }

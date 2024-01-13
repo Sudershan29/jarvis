@@ -13,8 +13,10 @@ import (
 	// "crypto/elliptic"
 )
 
+const JWT_DEFAULT = "hello"
+
 func GenerateJWT(userName string) (string, error) {
-	key := helpers.GetEnvWithDefault("JWT_KEY", "hello")
+	key := helpers.GetEnvWithDefault("JWT_KEY", JWT_DEFAULT)
 	token  := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["exp"] = time.Now().Add(time.Hour * time.Duration(8760)).Unix() 	// TODO: Change the expiration date
@@ -30,7 +32,7 @@ func GenerateJWT(userName string) (string, error) {
 }
 
 func IsTokenValid(tokenString string) bool {
-	key := helpers.GetEnvWithDefault("JWT_KEY", "hello")
+	key := helpers.GetEnvWithDefault("JWT_KEY", JWT_DEFAULT)
 	_, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
@@ -44,7 +46,7 @@ func IsTokenValid(tokenString string) bool {
 }
 
 func GetUser(tokenString string) string {
-	key := helpers.GetEnvWithDefault("JWT_KEY", "hello")
+	key := helpers.GetEnvWithDefault("JWT_KEY", JWT_DEFAULT)
 	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])

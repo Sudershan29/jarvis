@@ -29,6 +29,14 @@ const (
 	FieldPremium = "premium"
 	// EdgeSkills holds the string denoting the skills edge name in mutations.
 	EdgeSkills = "skills"
+	// EdgeTasks holds the string denoting the tasks edge name in mutations.
+	EdgeTasks = "tasks"
+	// EdgeMeetings holds the string denoting the meetings edge name in mutations.
+	EdgeMeetings = "meetings"
+	// EdgeHobbies holds the string denoting the hobbies edge name in mutations.
+	EdgeHobbies = "hobbies"
+	// EdgeGoals holds the string denoting the goals edge name in mutations.
+	EdgeGoals = "goals"
 	// EdgeCategories holds the string denoting the categories edge name in mutations.
 	EdgeCategories = "categories"
 	// EdgePreference holds the string denoting the preference edge name in mutations.
@@ -42,6 +50,34 @@ const (
 	SkillsInverseTable = "skills"
 	// SkillsColumn is the table column denoting the skills relation/edge.
 	SkillsColumn = "user_skills"
+	// TasksTable is the table that holds the tasks relation/edge.
+	TasksTable = "tasks"
+	// TasksInverseTable is the table name for the Task entity.
+	// It exists in this package in order to avoid circular dependency with the "task" package.
+	TasksInverseTable = "tasks"
+	// TasksColumn is the table column denoting the tasks relation/edge.
+	TasksColumn = "user_tasks"
+	// MeetingsTable is the table that holds the meetings relation/edge.
+	MeetingsTable = "meetings"
+	// MeetingsInverseTable is the table name for the Meeting entity.
+	// It exists in this package in order to avoid circular dependency with the "meeting" package.
+	MeetingsInverseTable = "meetings"
+	// MeetingsColumn is the table column denoting the meetings relation/edge.
+	MeetingsColumn = "user_meetings"
+	// HobbiesTable is the table that holds the hobbies relation/edge.
+	HobbiesTable = "hobbies"
+	// HobbiesInverseTable is the table name for the Hobby entity.
+	// It exists in this package in order to avoid circular dependency with the "hobby" package.
+	HobbiesInverseTable = "hobbies"
+	// HobbiesColumn is the table column denoting the hobbies relation/edge.
+	HobbiesColumn = "user_hobbies"
+	// GoalsTable is the table that holds the goals relation/edge.
+	GoalsTable = "goals"
+	// GoalsInverseTable is the table name for the Goal entity.
+	// It exists in this package in order to avoid circular dependency with the "goal" package.
+	GoalsInverseTable = "goals"
+	// GoalsColumn is the table column denoting the goals relation/edge.
+	GoalsColumn = "user_goals"
 	// CategoriesTable is the table that holds the categories relation/edge.
 	CategoriesTable = "categories"
 	// CategoriesInverseTable is the table name for the Category entity.
@@ -140,6 +176,62 @@ func BySkills(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByTasksCount orders the results by tasks count.
+func ByTasksCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newTasksStep(), opts...)
+	}
+}
+
+// ByTasks orders the results by tasks terms.
+func ByTasks(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTasksStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByMeetingsCount orders the results by meetings count.
+func ByMeetingsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newMeetingsStep(), opts...)
+	}
+}
+
+// ByMeetings orders the results by meetings terms.
+func ByMeetings(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newMeetingsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByHobbiesCount orders the results by hobbies count.
+func ByHobbiesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newHobbiesStep(), opts...)
+	}
+}
+
+// ByHobbies orders the results by hobbies terms.
+func ByHobbies(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newHobbiesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByGoalsCount orders the results by goals count.
+func ByGoalsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newGoalsStep(), opts...)
+	}
+}
+
+// ByGoals orders the results by goals terms.
+func ByGoals(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newGoalsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByCategoriesCount orders the results by categories count.
 func ByCategoriesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -165,6 +257,34 @@ func newSkillsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SkillsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SkillsTable, SkillsColumn),
+	)
+}
+func newTasksStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TasksInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, TasksTable, TasksColumn),
+	)
+}
+func newMeetingsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(MeetingsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, MeetingsTable, MeetingsColumn),
+	)
+}
+func newHobbiesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(HobbiesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, HobbiesTable, HobbiesColumn),
+	)
+}
+func newGoalsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(GoalsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, GoalsTable, GoalsColumn),
 	)
 }
 func newCategoriesStep() *sqlgraph.Step {
