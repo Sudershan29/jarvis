@@ -41,6 +41,7 @@ func HobbyCreate(name, description string, categories []string, currUser *JwtUse
 	sOrm := dbClient.Client.Hobby.
 				Create().
 				SetName(name).
+				SetUser(currUser.Model.User).
 				SetDescription(description)
 
 	for _, cat := range categories {

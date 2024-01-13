@@ -43,6 +43,7 @@ func MeetingCreate(name, description, where, whom string, duration int, when tim
 				SetWhere(where).
 				SetWhom(whom).
 				SetDuration(duration).
+				SetUser(currUser.Model.User).
 				SetWhen(when)
 
 	s, err := sOrm.Save(dbClient.Context)

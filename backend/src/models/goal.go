@@ -42,6 +42,7 @@ func GoalCreate(name, description string, categories []string, currUser *JwtUser
 	sOrm := dbClient.Client.Goal.
 				Create().
 				SetName(name).
+				SetUser(currUser.Model.User).
 				SetDescription(description)
 
 	for _, cat := range categories {

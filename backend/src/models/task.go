@@ -46,6 +46,7 @@ func TaskCreate(name, description string, duration int, deadline time.Time, cate
 				SetName(name).
 				SetDuration(duration).
 				SetDeadline(deadline).
+				SetUser(currUser.Model.User).
 				SetDescription(description)
 
 	for _, cat := range categories {
