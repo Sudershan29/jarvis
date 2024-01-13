@@ -340,6 +340,16 @@ func DeadlineLTE(v time.Time) predicate.Task {
 	return predicate.Task(sql.FieldLTE(FieldDeadline, v))
 }
 
+// DeadlineIsNil applies the IsNil predicate on the "deadline" field.
+func DeadlineIsNil() predicate.Task {
+	return predicate.Task(sql.FieldIsNull(FieldDeadline))
+}
+
+// DeadlineNotNil applies the NotNil predicate on the "deadline" field.
+func DeadlineNotNil() predicate.Task {
+	return predicate.Task(sql.FieldNotNull(FieldDeadline))
+}
+
 // HasCategories applies the HasEdge predicate on the "categories" edge.
 func HasCategories() predicate.Task {
 	return predicate.Task(func(s *sql.Selector) {

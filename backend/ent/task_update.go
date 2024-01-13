@@ -105,6 +105,12 @@ func (tu *TaskUpdate) SetNillableDeadline(t *time.Time) *TaskUpdate {
 	return tu
 }
 
+// ClearDeadline clears the value of the "deadline" field.
+func (tu *TaskUpdate) ClearDeadline() *TaskUpdate {
+	tu.mutation.ClearDeadline()
+	return tu
+}
+
 // AddCategoryIDs adds the "categories" edge to the Category entity by IDs.
 func (tu *TaskUpdate) AddCategoryIDs(ids ...int) *TaskUpdate {
 	tu.mutation.AddCategoryIDs(ids...)
@@ -227,6 +233,9 @@ func (tu *TaskUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := tu.mutation.Deadline(); ok {
 		_spec.SetField(task.FieldDeadline, field.TypeTime, value)
+	}
+	if tu.mutation.DeadlineCleared() {
+		_spec.ClearField(task.FieldDeadline, field.TypeTime)
 	}
 	if tu.mutation.CategoriesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -397,6 +406,12 @@ func (tuo *TaskUpdateOne) SetNillableDeadline(t *time.Time) *TaskUpdateOne {
 	return tuo
 }
 
+// ClearDeadline clears the value of the "deadline" field.
+func (tuo *TaskUpdateOne) ClearDeadline() *TaskUpdateOne {
+	tuo.mutation.ClearDeadline()
+	return tuo
+}
+
 // AddCategoryIDs adds the "categories" edge to the Category entity by IDs.
 func (tuo *TaskUpdateOne) AddCategoryIDs(ids ...int) *TaskUpdateOne {
 	tuo.mutation.AddCategoryIDs(ids...)
@@ -549,6 +564,9 @@ func (tuo *TaskUpdateOne) sqlSave(ctx context.Context) (_node *Task, err error) 
 	}
 	if value, ok := tuo.mutation.Deadline(); ok {
 		_spec.SetField(task.FieldDeadline, field.TypeTime, value)
+	}
+	if tuo.mutation.DeadlineCleared() {
+		_spec.ClearField(task.FieldDeadline, field.TypeTime)
 	}
 	if tuo.mutation.CategoriesCleared() {
 		edge := &sqlgraph.EdgeSpec{

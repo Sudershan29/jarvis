@@ -4415,9 +4415,22 @@ func (m *TaskMutation) OldDeadline(ctx context.Context) (v time.Time, err error)
 	return oldValue.Deadline, nil
 }
 
+// ClearDeadline clears the value of the "deadline" field.
+func (m *TaskMutation) ClearDeadline() {
+	m.deadline = nil
+	m.clearedFields[task.FieldDeadline] = struct{}{}
+}
+
+// DeadlineCleared returns if the "deadline" field was cleared in this mutation.
+func (m *TaskMutation) DeadlineCleared() bool {
+	_, ok := m.clearedFields[task.FieldDeadline]
+	return ok
+}
+
 // ResetDeadline resets all changes to the "deadline" field.
 func (m *TaskMutation) ResetDeadline() {
 	m.deadline = nil
+	delete(m.clearedFields, task.FieldDeadline)
 }
 
 // AddCategoryIDs adds the "categories" edge to the Category entity by ids.
@@ -4692,6 +4705,9 @@ func (m *TaskMutation) ClearedFields() []string {
 	if m.FieldCleared(task.FieldDescription) {
 		fields = append(fields, task.FieldDescription)
 	}
+	if m.FieldCleared(task.FieldDeadline) {
+		fields = append(fields, task.FieldDeadline)
+	}
 	return fields
 }
 
@@ -4708,6 +4724,9 @@ func (m *TaskMutation) ClearField(name string) error {
 	switch name {
 	case task.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case task.FieldDeadline:
+		m.ClearDeadline()
 		return nil
 	}
 	return fmt.Errorf("unknown Task nullable field %s", name)

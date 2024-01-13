@@ -86,8 +86,6 @@ var (
 	DefaultDuration int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
-	// DefaultDeadline holds the default value on creation for the "deadline" field.
-	DefaultDeadline func() time.Time
 )
 
 // OrderOption defines the ordering options for the Task queries.

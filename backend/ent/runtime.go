@@ -76,10 +76,6 @@ func init() {
 	taskDescCreatedAt := taskFields[3].Descriptor()
 	// task.DefaultCreatedAt holds the default value on creation for the created_at field.
 	task.DefaultCreatedAt = taskDescCreatedAt.Default.(func() time.Time)
-	// taskDescDeadline is the schema descriptor for deadline field.
-	taskDescDeadline := taskFields[4].Descriptor()
-	// task.DefaultDeadline holds the default value on creation for the deadline field.
-	task.DefaultDeadline = taskDescDeadline.Default.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.

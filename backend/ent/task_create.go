@@ -161,10 +161,6 @@ func (tc *TaskCreate) defaults() {
 		v := task.DefaultCreatedAt()
 		tc.mutation.SetCreatedAt(v)
 	}
-	if _, ok := tc.mutation.Deadline(); !ok {
-		v := task.DefaultDeadline()
-		tc.mutation.SetDeadline(v)
-	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -177,9 +173,6 @@ func (tc *TaskCreate) check() error {
 	}
 	if _, ok := tc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Task.created_at"`)}
-	}
-	if _, ok := tc.mutation.Deadline(); !ok {
-		return &ValidationError{Name: "deadline", err: errors.New(`ent: missing required field "Task.deadline"`)}
 	}
 	return nil
 }

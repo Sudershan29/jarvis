@@ -150,7 +150,7 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "duration", Type: field.TypeInt, Default: 0},
 		{Name: "created_at", Type: field.TypeTime},
-		{Name: "deadline", Type: field.TypeTime},
+		{Name: "deadline", Type: field.TypeTime, Nullable: true},
 		{Name: "user_tasks", Type: field.TypeInt, Nullable: true},
 	}
 	// TasksTable holds the schema information for the "tasks" table.

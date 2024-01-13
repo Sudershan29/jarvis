@@ -23,7 +23,7 @@ func (Task) Fields() []ent.Field {
 		field.Time("created_at").
             Default(time.Now),
 		field.Time("deadline").
-            Default(time.Now),
+            Optional(),
 	}
 }
 

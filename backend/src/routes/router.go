@@ -6,7 +6,7 @@ import (
 )
 
 func CreateRouter(c *gin.Engine) {
-	middleware.SetCors(c)
+	// middleware.SetCors(c)
 
 	// Auth
 	apiGroup := c.Group("/api/v1")
@@ -21,4 +21,24 @@ func CreateRouter(c *gin.Engine) {
 	skillGroup := c.Group("/api/v1/skills")
 	skillGroup.Use(middleware.JwtAuthMiddleware())
 	SkillRoute(skillGroup)
+
+	// Goal
+	goalGroup := c.Group("/api/v1/goals")
+	goalGroup.Use(middleware.JwtAuthMiddleware())
+	GoalRoute(goalGroup)
+
+	// Task
+	taskGroup := c.Group("/api/v1/tasks")
+	taskGroup.Use(middleware.JwtAuthMiddleware())
+	TaskRoute(taskGroup)
+
+	// Meeting
+	meetingGroup := c.Group("/api/v1/meetings")
+	meetingGroup.Use(middleware.JwtAuthMiddleware())
+	MeetingRoute(meetingGroup)
+
+	// Hobby
+	hobbyGroup := c.Group("/api/v1/hobbies")
+	hobbyGroup.Use(middleware.JwtAuthMiddleware())
+	HobbyRoute(hobbyGroup)
 }
