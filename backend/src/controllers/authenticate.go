@@ -2,8 +2,10 @@ package controllers
 
 import (
 	"net/http"
+	"backend/src/lib"
 	"backend/src/models"
   	"github.com/gin-gonic/gin"
+	"github.com/markbates/goth/gothic"
 )
 
 /*
@@ -86,3 +88,70 @@ func AuthenticateLogout(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 200 })
 }
+
+/*
+
+	Google Sign in
+
+*/
+func AuthenticateGoogleLogin(c *gin.Context) {
+	q := c.Request.URL.Query()
+	q.Add("provider", "google")
+	c.Request.URL.RawQuery = q.Encode()
+	gothic.BeginAuthHandler(c.Writer, c.Request)
+}
+
+/*
+
+	Google Callback
+
+*/
+
+// TODO: Change the callback for multiple services?
+func AuthenticateGoogleCallback(c *gin.Context) {
+	q := c.Request.URL.Query()
+
+	// Attempting to check if it was redirect request from calendar
+	if calendarState, err := lib.ConvertCalendarState(c.Query("state")); err != nil {
+		/*
+			OAuth2.0 Callback
+		*/
+		q.Add("provider", "google")
+		c.Request.URL.RawQuery = q.Encode()
+		user, err := gothic.CompleteUserAuth(c.Writer, c.Request)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		userJSON := models.ConvertToJSON(user)
+
+		// TODO: Generate JWT, maybe explore options into redirect to different URL in backend to isolate logic
+		c.JSON(http.StatusOK, gin.H{"code": 200, "user": userJSON})
+	} else {
+		/*
+			Google Calendar Callback
+
+			NOTES: Add calendars to database, and enable different views for different accounts | Research how to identify which email id? Maybe add it to Calendar State
+		*/
+		status := lib.SaveCalendarToken(calendarState, c.Query("code"))
+		c.JSON(http.StatusOK, gin.H{"code": 200, "user": calendarState.UserSlug, "saved": status })
+	}
+}
+
+/* 
+
+func AuthenticateGoogleStatus(c *gin.Context) {
+	q := c.Request.URL.Query()
+	q.Add("provider", "google")
+	c.Request.URL.RawQuery = q.Encode()
+	user, err := gothic.CompleteUserAuth(c.Writer, c.Request)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	userJSON := models.ConvertToJSON(user)
+	c.JSON(http.StatusOK, gin.H{"code": 200, "user": userJSON})
+}
+
+*/

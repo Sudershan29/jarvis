@@ -7,5 +7,7 @@ import (
 )
 
 func UserRoute(g *gin.RouterGroup) {
-	g.GET("/profile"   , controllers.UserProfile)
+	g.GET("/profile" , controllers.UserProfile)
+	g.GET("/calendar", controllers.UserCalendar)
+	g.GET("/calendar/connect", controllers.UserCalendarConnect)
 }

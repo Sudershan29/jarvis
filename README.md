@@ -2,13 +2,13 @@
 
 ## Aim
 
-1. This is an app that is aimed to improve productivity by helping you scheduling your everyday activities like tasks, meetings, etc.
-2. The app offers intergration with your google calendar, and automatically propose a best schedule to complete your tasks.
+1. This app is designed to enhance productivity by assisting you in scheduling your daily activities such as tasks and meetings.
+2. The app integrates seamlessly with your Google Calendar and automatically suggests the optimal schedule for completing your tasks.
 
 ## Motivation
 
-1. Improve productivity, and set realistic goals for the year
-2. Plan events by looking at multiple people's calendars
+1. Boost productivity and set achievable goals for the year.
+2. Coordinate events by checking multiple people's calendars.
 
 ## Tech Stack
 
