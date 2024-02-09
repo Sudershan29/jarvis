@@ -69,19 +69,21 @@ func GenerateGCalendarAuthorizationLink(userSlug string) (string, error) {
 }
 
 // Retrieve a token, saves the token, then returns the generated client.
-func getClient(config *oauth2.Config, ctx context.Context, authCode string) *http.Client {
-	tok, _ := config.Exchange(context.TODO(), authCode)
+func getClient(config *oauth2.Config, ctx context.Context, tok *oauth2.Token) *http.Client {
+	// tok, _ := config.Exchange(context.TODO(), authCode)
 	return config.Client(context.Background(), tok)
 }
 
-func NewCalendarClient(authCode string) (*GoogleCalendarClient, error) {
+func NewCalendarClient(userSlug string) (*GoogleCalendarClient, error) {
 	ctx := context.Background()
 	config, err := getGoogleOAuthConfig()
 	if err != nil {
 		return nil, errors.New("Trouble reading Google OAuth configuration")
 	}
 
-	client := getClient(config, ctx, authCode)
+	authToken, _ := GetSavedCalendarToken(userSlug)
+
+	client := getClient(config, ctx, authToken)
 	srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		return nil, err
@@ -120,14 +122,19 @@ const CALENDAR_REDIS_PATTERN = "%s-calendar-token"
 
 
 func SaveCalendarToken(user *googleCalendarState, token string) bool {
-	err := RedisClient.Store(fmt.Sprintf(CALENDAR_REDIS_PATTERN, user.UserSlug), token)
+	config, _ := getGoogleOAuthConfig()
+	tok, _ := config.Exchange(context.TODO(), token)
+	tokStr, _ := json.Marshal(tok)
+	err := RedisClient.Store(fmt.Sprintf(CALENDAR_REDIS_PATTERN, user.UserSlug), string(tokStr))
 	return err == nil
 }
 
-func GetSavedCalendar(userSlug string) (string, error) {
+func GetSavedCalendarToken(userSlug string) (*oauth2.Token, error) {
 	val, err := RedisClient.Get(fmt.Sprintf(CALENDAR_REDIS_PATTERN, userSlug))
 	if err == nil {
-		return val, nil
+		tok := &oauth2.Token{}
+		json.Unmarshal([]byte(val), tok)
+		return tok, nil
 	}
-	return "", err
+	return nil, err
 }

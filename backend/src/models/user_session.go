@@ -9,8 +9,8 @@ type UserSessionJSON struct {
 	Name 	     string `json:"name"`
 	Email 	     string `json:"email"`
 	Provider     string `json:"provider"`
-	AccessToken  string `json:"accesstoken"`
-	RefreshToken string `json:"refreshtoken"`
+	AccessToken  string `json:"-"`
+	RefreshToken string `json:"-"`
 	ExpiresAt    time.Time `json:"expiry"`
 }
 

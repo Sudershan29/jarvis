@@ -2,6 +2,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 	"errors"
 	"backend/ent"
@@ -11,31 +12,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+/*
+
+	UserModel
+
+*/
+
 type UserModel struct {
 	User *ent.User
 }
 
-// Minified 
-type JwtUser struct {
-	UserId uuid.UUID
-	Model *UserModel
-}
-
-func NewJwtUser(user_id string) *JwtUser {
-	uuid, _ := uuid.Parse(user_id)
-	return &JwtUser{UserId: uuid}
-}
-
-// Loads only when neccessary!
-func (j *JwtUser) Load() {
-	u, _ := UserFind(j.UserId.String())
-	j.Model = u
-}
-
-type UserJSON struct {
-	Name 	  string `json:"name"`
-	Email 	  string `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
+func (u UserModel) String() string {
+	return fmt.Sprintf("User(name='%s', email='%s', uuid='%s')", u.User.Name, u.User.EmailAddress, u.User.UUID)
 }
 
 func UserCreate(name, password, email string) (*UserModel, error) {
@@ -84,8 +72,34 @@ func UserFind(key string) (*UserModel, error) {
 	return &user, nil
 }
 
-func (u UserModel) Login(password string) (string, error) {
-	if !u.checkPasswordHash(password) {
+// Returns user events that are already in the calendar
+func (u UserModel) Calendar() ([]string, error) {
+	var calendarEvents []string
+	// fmt.Println(u.User.UUID.String())
+	// code, err := lib.GetSavedCalendar(u.User.UUID.String())
+	userCalendarClient, err := lib.NewCalendarClient(u.User.UUID.String())
+	if err != nil {
+		return calendarEvents, err;
+	}
+
+	calendarEvents, err = userCalendarClient.FetchEvents()
+	if err != nil {
+		return calendarEvents, err;
+	}
+
+	return calendarEvents, nil
+}
+
+func (u UserModel) Events() ([]Event, error) {
+	var myEvents []Event
+	/*
+		Going through all skills, tasks, and other user defined events for the week
+	*/
+	return myEvents, nil
+}
+
+func (u UserModel) Login(password string, bypassCheck bool) (string, error) {
+	if !bypassCheck && !u.checkPasswordHash(password) {
 		return "", errors.New("Username and Password did not match")
 	}
 	return lib.GenerateJWT(u.User.UUID.String())
@@ -105,4 +119,41 @@ func (u UserModel) Marshal() UserJSON { // []byte
 	user := UserJSON{u.User.Name, u.User.EmailAddress, u.User.CreatedAt}
 	// userJSON, _ := json.Marshal(user)
 	return user
+}
+
+
+/* 
+
+	JwtUser
+
+*/
+
+
+type JwtUser struct {
+	UserId uuid.UUID
+	Model *UserModel
+}
+
+func NewJwtUser(user_id string) *JwtUser {
+	uuid, _ := uuid.Parse(user_id)
+	return &JwtUser{UserId: uuid}
+}
+
+// Loads only when neccessary!
+func (j *JwtUser) Load() {
+	u, _ := UserFind(j.UserId.String())
+	j.Model = u
+}
+
+
+/*
+
+	UserJSON
+
+*/
+
+type UserJSON struct {
+	Name 	  string `json:"name"`
+	Email 	  string `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 }

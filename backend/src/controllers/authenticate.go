@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"backend/src/lib"
 	"backend/src/models"
+	"github.com/google/uuid"
   	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
 )
@@ -31,7 +32,7 @@ func AuthenticateLogin(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusNotFound, "message": err.Error() })
 		return
 	}
-	token, err := user.Login(input.Password)
+	token, err := user.Login(input.Password, false)
 	if err != nil {
 		c.JSON(http.StatusNotAcceptable, gin.H{"code": http.StatusNotAcceptable, "message": err.Error() })
 		return
@@ -123,10 +124,25 @@ func AuthenticateGoogleCallback(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		userJSON := models.ConvertToJSON(user)
 
-		// TODO: Generate JWT, maybe explore options into redirect to different URL in backend to isolate logic
-		c.JSON(http.StatusOK, gin.H{"code": 200, "user": userJSON})
+		// NOTE: maybe explore options into redirect to different URL in backend to isolate logic
+		googleUserJSON := models.ConvertToJSON(user)
+		userModel, err := models.UserFind(googleUserJSON.Email)
+		if err != nil {
+			userModel, err = models.UserCreate(googleUserJSON.Name, uuid.New().String(), googleUserJSON.Email)	// NOTE: Autogenerating passwords for privacy reasons
+			if err != nil {
+				c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+				return
+			}
+		}
+
+		token, err := userModel.Login("", true)
+		if err != nil {
+			c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"code": 200, "user": googleUserJSON, "token": token})
 	} else {
 		/*
 			Google Calendar Callback

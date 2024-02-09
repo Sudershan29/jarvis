@@ -35,21 +35,21 @@ func UserProfile(c *gin.Context) {
 
 func UserCalendar(c *gin.Context) {
 	user 	  := CurrentUser(c)
-	code, err := lib.GetSavedCalendar(user.UserId.String())
-	userCalendarClient, err := lib.NewCalendarClient(code)
+	// code, err := lib.GetSavedCalendarToken(user.UserId.String())
+	userCalendarClient, err := lib.NewCalendarClient(user.UserId.String())
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return;
 	}
 
-	calenderEvents, err := userCalendarClient.FetchEvents()
+	calendarEvents, err := userCalendarClient.FetchEvents()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return;
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 200, "events": calenderEvents })
+	c.JSON(http.StatusOK, gin.H{"code": 200, "events": calendarEvents })
 }
 
 /*
