@@ -396,6 +396,29 @@ func HasUserWith(preds ...predicate.User) predicate.Task {
 	})
 }
 
+// HasTimePreferences applies the HasEdge predicate on the "time_preferences" edge.
+func HasTimePreferences() predicate.Task {
+	return predicate.Task(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, TimePreferencesTable, TimePreferencesPrimaryKey...),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTimePreferencesWith applies the HasEdge predicate on the "time_preferences" edge with a given conditions (other predicates).
+func HasTimePreferencesWith(preds ...predicate.TimePreference) predicate.Task {
+	return predicate.Task(func(s *sql.Selector) {
+		step := newTimePreferencesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Task) predicate.Task {
 	return predicate.Task(func(s *sql.Selector) {

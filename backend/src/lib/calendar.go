@@ -1,19 +1,20 @@
 package lib
 
 import (
-        "os"
-		// "log"
-		"fmt"
-        "time"
-		"errors"
-		"context"
-		"net/http"
-		"encoding/json"
-		"path/filepath"
-        "golang.org/x/oauth2"
-        "golang.org/x/oauth2/google"
-		"google.golang.org/api/option"
-        "google.golang.org/api/calendar/v3"
+	"backend/src/helpers"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"time"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/option"
 )
 
 type googleCalendarState struct {
@@ -22,11 +23,11 @@ type googleCalendarState struct {
 	// TODO: add more states or random numbers to validate if the backend create this state
 }
 
-func newCalendarState(userSlug string) *googleCalendarState{
+func newCalendarState(userSlug string) *googleCalendarState {
 	return &googleCalendarState{userSlug, "google-calendar"}
 }
 
-func (g *googleCalendarState) String() (string, error){
+func (g *googleCalendarState) String() (string, error) {
 	val, err := json.Marshal(g)
 	if err != nil {
 		return "", err
@@ -44,9 +45,8 @@ func ConvertCalendarState(code string) (*googleCalendarState, error) {
 	return &result, nil
 }
 
-
 type GoogleCalendarClient struct {
-	Ctx 	  context.Context
+	Ctx      context.Context
 	Calendar *calendar.Service
 }
 
@@ -56,11 +56,11 @@ func getGoogleOAuthConfig() (*oauth2.Config, error) {
 	byteValue, _ := os.ReadFile(absPath)
 
 	// Get client
-	return google.ConfigFromJSON(byteValue, calendar.CalendarReadonlyScope)
+	return google.ConfigFromJSON(byteValue, calendar.CalendarScope) // TODO: Create a logic to switch scopes to client based on purpose
 }
 
 func GenerateGCalendarAuthorizationLink(userSlug string) (string, error) {
-	config, err := getGoogleOAuthConfig()
+	config, _ := getGoogleOAuthConfig()
 	stateToken, err := newCalendarState(userSlug).String()
 	if err != nil {
 		return "", errors.New("Trouble reading Google OAuth configuration")
@@ -78,7 +78,7 @@ func NewCalendarClient(userSlug string) (*GoogleCalendarClient, error) {
 	ctx := context.Background()
 	config, err := getGoogleOAuthConfig()
 	if err != nil {
-		return nil, errors.New("Trouble reading Google OAuth configuration")
+		return nil, errors.New("trouble reading Google OAuth configuration")
 	}
 
 	authToken, _ := GetSavedCalendarToken(userSlug)
@@ -91,11 +91,58 @@ func NewCalendarClient(userSlug string) (*GoogleCalendarClient, error) {
 	return &GoogleCalendarClient{ctx, srv}, nil
 }
 
-func (client *GoogleCalendarClient) FetchEvents() ([]string, error) {
-	result := make([]string, 0)
+func (client *GoogleCalendarClient) ListCalendars() ([]string, error) {
+	// List calendars
+	calendarList, err := client.Calendar.CalendarList.List().Do()
+	if err != nil {
+		return make([]string, 0), err
+	}
+
+	var result []string
+	// Loop through and print calendar details
+	for _, calendar := range calendarList.Items {
+		result = append(result, fmt.Sprintf("Calendar ID: %s, Summary: %s\n", calendar.Id, calendar.Summary))
+	}
+	return result, nil
+}
+
+func (client *GoogleCalendarClient) AddEvent(eventData *calendar.Event) error {
+	// List calendars
+	_, err := client.Calendar.Events.Insert("primary", eventData).Do()
+	return err
+}
+
+func (client *GoogleCalendarClient) FetchEventsWithFilters(startDate, endDate string) (DayTimeBlock, error) {
+	var result DayTimeBlock
+	events, err := client.Calendar.Events.List("primary").ShowDeleted(false).
+		SingleEvents(true).TimeMin(startDate).TimeMax(endDate).OrderBy("startTime").Do()
+
+	if err != nil {
+		return result, err
+	}
+
+	if len(events.Items) != 0 {
+		for _, item := range events.Items {
+			startTime, _ := time.Parse(time.RFC3339, item.Start.DateTime)
+			endTime, _ := time.Parse(time.RFC3339, item.End.DateTime)
+
+			// Skipping all day events
+			if endTime.Sub(startTime) >= 24*time.Hour {
+				continue
+			}
+
+			result = append(result, NewTimeBlock(item.Summary, helpers.ConvertToTimezone(startTime, item.Start.TimeZone),
+				helpers.ConvertToTimezone(endTime, item.End.TimeZone), false))
+		}
+	}
+	return result, nil
+}
+
+func (client *GoogleCalendarClient) FetchEvents() (DayTimeBlock, error) {
+	var result DayTimeBlock
 	t := time.Now().Format(time.RFC3339)
 	events, err := client.Calendar.Events.List("primary").ShowDeleted(false).
-			SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
+		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
 
 	if err != nil {
 		// log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
@@ -104,11 +151,9 @@ func (client *GoogleCalendarClient) FetchEvents() ([]string, error) {
 
 	if len(events.Items) != 0 {
 		for _, item := range events.Items {
-				date := item.Start.DateTime
-				if date == "" {
-						date = item.Start.Date
-				}
-				result = append(result, (fmt.Sprintf("%v (%v)\n", item.Summary, date)))
+			startTime, _ := time.Parse(time.RFC3339, item.Start.DateTime)
+			endTime, _ := time.Parse(time.RFC3339, item.End.DateTime)
+			result = append(result, NewTimeBlock(item.Summary, helpers.ConvertToTimezone(startTime, "America/Chicago"), helpers.ConvertToTimezone(endTime, "America/Chicago"), true))
 		}
 	}
 	return result, nil
@@ -119,7 +164,6 @@ func (client *GoogleCalendarClient) FetchEvents() ([]string, error) {
 */
 
 const CALENDAR_REDIS_PATTERN = "%s-calendar-token"
-
 
 func SaveCalendarToken(user *googleCalendarState, token string) bool {
 	config, _ := getGoogleOAuthConfig()

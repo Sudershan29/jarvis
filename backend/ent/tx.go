@@ -26,6 +26,8 @@ type Tx struct {
 	Skill *SkillClient
 	// Task is the client for interacting with the Task builders.
 	Task *TaskClient
+	// TimePreference is the client for interacting with the TimePreference builders.
+	TimePreference *TimePreferenceClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -166,6 +168,7 @@ func (tx *Tx) init() {
 	tx.Preference = NewPreferenceClient(tx.config)
 	tx.Skill = NewSkillClient(tx.config)
 	tx.Task = NewTaskClient(tx.config)
+	tx.TimePreference = NewTimePreferenceClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

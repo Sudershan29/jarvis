@@ -11,6 +11,7 @@ import (
 	"backend/ent/preference"
 	"backend/ent/skill"
 	"backend/ent/task"
+	"backend/ent/timepreference"
 	"backend/ent/user"
 	"context"
 	"errors"
@@ -32,14 +33,15 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeCategory   = "Category"
-	TypeGoal       = "Goal"
-	TypeHobby      = "Hobby"
-	TypeMeeting    = "Meeting"
-	TypePreference = "Preference"
-	TypeSkill      = "Skill"
-	TypeTask       = "Task"
-	TypeUser       = "User"
+	TypeCategory       = "Category"
+	TypeGoal           = "Goal"
+	TypeHobby          = "Hobby"
+	TypeMeeting        = "Meeting"
+	TypePreference     = "Preference"
+	TypeSkill          = "Skill"
+	TypeTask           = "Task"
+	TypeTimePreference = "TimePreference"
+	TypeUser           = "User"
 )
 
 // CategoryMutation represents an operation that mutates the Category nodes in the graph.
@@ -3326,25 +3328,28 @@ func (m *PreferenceMutation) ResetEdge(name string) error {
 // SkillMutation represents an operation that mutates the Skill nodes in the graph.
 type SkillMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *int
-	name              *string
-	level             *string
-	progress          *int
-	addprogress       *int
-	duration          *int
-	addduration       *int
-	created_at        *time.Time
-	clearedFields     map[string]struct{}
-	categories        map[int]struct{}
-	removedcategories map[int]struct{}
-	clearedcategories bool
-	user              *int
-	cleareduser       bool
-	done              bool
-	oldValue          func(context.Context) (*Skill, error)
-	predicates        []predicate.Skill
+	op                      Op
+	typ                     string
+	id                      *int
+	name                    *string
+	level                   *string
+	progress                *int
+	addprogress             *int
+	duration                *int
+	addduration             *int
+	created_at              *time.Time
+	clearedFields           map[string]struct{}
+	categories              map[int]struct{}
+	removedcategories       map[int]struct{}
+	clearedcategories       bool
+	user                    *int
+	cleareduser             bool
+	time_preferences        map[int]struct{}
+	removedtime_preferences map[int]struct{}
+	clearedtime_preferences bool
+	done                    bool
+	oldValue                func(context.Context) (*Skill, error)
+	predicates              []predicate.Skill
 }
 
 var _ ent.Mutation = (*SkillMutation)(nil)
@@ -3758,6 +3763,60 @@ func (m *SkillMutation) ResetUser() {
 	m.cleareduser = false
 }
 
+// AddTimePreferenceIDs adds the "time_preferences" edge to the TimePreference entity by ids.
+func (m *SkillMutation) AddTimePreferenceIDs(ids ...int) {
+	if m.time_preferences == nil {
+		m.time_preferences = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.time_preferences[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTimePreferences clears the "time_preferences" edge to the TimePreference entity.
+func (m *SkillMutation) ClearTimePreferences() {
+	m.clearedtime_preferences = true
+}
+
+// TimePreferencesCleared reports if the "time_preferences" edge to the TimePreference entity was cleared.
+func (m *SkillMutation) TimePreferencesCleared() bool {
+	return m.clearedtime_preferences
+}
+
+// RemoveTimePreferenceIDs removes the "time_preferences" edge to the TimePreference entity by IDs.
+func (m *SkillMutation) RemoveTimePreferenceIDs(ids ...int) {
+	if m.removedtime_preferences == nil {
+		m.removedtime_preferences = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.time_preferences, ids[i])
+		m.removedtime_preferences[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTimePreferences returns the removed IDs of the "time_preferences" edge to the TimePreference entity.
+func (m *SkillMutation) RemovedTimePreferencesIDs() (ids []int) {
+	for id := range m.removedtime_preferences {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TimePreferencesIDs returns the "time_preferences" edge IDs in the mutation.
+func (m *SkillMutation) TimePreferencesIDs() (ids []int) {
+	for id := range m.time_preferences {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTimePreferences resets all changes to the "time_preferences" edge.
+func (m *SkillMutation) ResetTimePreferences() {
+	m.time_preferences = nil
+	m.clearedtime_preferences = false
+	m.removedtime_preferences = nil
+}
+
 // Where appends a list predicates to the SkillMutation builder.
 func (m *SkillMutation) Where(ps ...predicate.Skill) {
 	m.predicates = append(m.predicates, ps...)
@@ -3986,12 +4045,15 @@ func (m *SkillMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SkillMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.categories != nil {
 		edges = append(edges, skill.EdgeCategories)
 	}
 	if m.user != nil {
 		edges = append(edges, skill.EdgeUser)
+	}
+	if m.time_preferences != nil {
+		edges = append(edges, skill.EdgeTimePreferences)
 	}
 	return edges
 }
@@ -4010,15 +4072,24 @@ func (m *SkillMutation) AddedIDs(name string) []ent.Value {
 		if id := m.user; id != nil {
 			return []ent.Value{*id}
 		}
+	case skill.EdgeTimePreferences:
+		ids := make([]ent.Value, 0, len(m.time_preferences))
+		for id := range m.time_preferences {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SkillMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedcategories != nil {
 		edges = append(edges, skill.EdgeCategories)
+	}
+	if m.removedtime_preferences != nil {
+		edges = append(edges, skill.EdgeTimePreferences)
 	}
 	return edges
 }
@@ -4033,18 +4104,27 @@ func (m *SkillMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case skill.EdgeTimePreferences:
+		ids := make([]ent.Value, 0, len(m.removedtime_preferences))
+		for id := range m.removedtime_preferences {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SkillMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedcategories {
 		edges = append(edges, skill.EdgeCategories)
 	}
 	if m.cleareduser {
 		edges = append(edges, skill.EdgeUser)
+	}
+	if m.clearedtime_preferences {
+		edges = append(edges, skill.EdgeTimePreferences)
 	}
 	return edges
 }
@@ -4057,6 +4137,8 @@ func (m *SkillMutation) EdgeCleared(name string) bool {
 		return m.clearedcategories
 	case skill.EdgeUser:
 		return m.cleareduser
+	case skill.EdgeTimePreferences:
+		return m.clearedtime_preferences
 	}
 	return false
 }
@@ -4082,6 +4164,9 @@ func (m *SkillMutation) ResetEdge(name string) error {
 	case skill.EdgeUser:
 		m.ResetUser()
 		return nil
+	case skill.EdgeTimePreferences:
+		m.ResetTimePreferences()
+		return nil
 	}
 	return fmt.Errorf("unknown Skill edge %s", name)
 }
@@ -4089,24 +4174,27 @@ func (m *SkillMutation) ResetEdge(name string) error {
 // TaskMutation represents an operation that mutates the Task nodes in the graph.
 type TaskMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *int
-	name              *string
-	description       *string
-	duration          *int
-	addduration       *int
-	created_at        *time.Time
-	deadline          *time.Time
-	clearedFields     map[string]struct{}
-	categories        map[int]struct{}
-	removedcategories map[int]struct{}
-	clearedcategories bool
-	user              *int
-	cleareduser       bool
-	done              bool
-	oldValue          func(context.Context) (*Task, error)
-	predicates        []predicate.Task
+	op                      Op
+	typ                     string
+	id                      *int
+	name                    *string
+	description             *string
+	duration                *int
+	addduration             *int
+	created_at              *time.Time
+	deadline                *time.Time
+	clearedFields           map[string]struct{}
+	categories              map[int]struct{}
+	removedcategories       map[int]struct{}
+	clearedcategories       bool
+	user                    *int
+	cleareduser             bool
+	time_preferences        map[int]struct{}
+	removedtime_preferences map[int]struct{}
+	clearedtime_preferences bool
+	done                    bool
+	oldValue                func(context.Context) (*Task, error)
+	predicates              []predicate.Task
 }
 
 var _ ent.Mutation = (*TaskMutation)(nil)
@@ -4526,6 +4614,60 @@ func (m *TaskMutation) ResetUser() {
 	m.cleareduser = false
 }
 
+// AddTimePreferenceIDs adds the "time_preferences" edge to the TimePreference entity by ids.
+func (m *TaskMutation) AddTimePreferenceIDs(ids ...int) {
+	if m.time_preferences == nil {
+		m.time_preferences = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.time_preferences[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTimePreferences clears the "time_preferences" edge to the TimePreference entity.
+func (m *TaskMutation) ClearTimePreferences() {
+	m.clearedtime_preferences = true
+}
+
+// TimePreferencesCleared reports if the "time_preferences" edge to the TimePreference entity was cleared.
+func (m *TaskMutation) TimePreferencesCleared() bool {
+	return m.clearedtime_preferences
+}
+
+// RemoveTimePreferenceIDs removes the "time_preferences" edge to the TimePreference entity by IDs.
+func (m *TaskMutation) RemoveTimePreferenceIDs(ids ...int) {
+	if m.removedtime_preferences == nil {
+		m.removedtime_preferences = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.time_preferences, ids[i])
+		m.removedtime_preferences[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTimePreferences returns the removed IDs of the "time_preferences" edge to the TimePreference entity.
+func (m *TaskMutation) RemovedTimePreferencesIDs() (ids []int) {
+	for id := range m.removedtime_preferences {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TimePreferencesIDs returns the "time_preferences" edge IDs in the mutation.
+func (m *TaskMutation) TimePreferencesIDs() (ids []int) {
+	for id := range m.time_preferences {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTimePreferences resets all changes to the "time_preferences" edge.
+func (m *TaskMutation) ResetTimePreferences() {
+	m.time_preferences = nil
+	m.clearedtime_preferences = false
+	m.removedtime_preferences = nil
+}
+
 // Where appends a list predicates to the TaskMutation builder.
 func (m *TaskMutation) Where(ps ...predicate.Task) {
 	m.predicates = append(m.predicates, ps...)
@@ -4757,12 +4899,15 @@ func (m *TaskMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TaskMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.categories != nil {
 		edges = append(edges, task.EdgeCategories)
 	}
 	if m.user != nil {
 		edges = append(edges, task.EdgeUser)
+	}
+	if m.time_preferences != nil {
+		edges = append(edges, task.EdgeTimePreferences)
 	}
 	return edges
 }
@@ -4781,15 +4926,24 @@ func (m *TaskMutation) AddedIDs(name string) []ent.Value {
 		if id := m.user; id != nil {
 			return []ent.Value{*id}
 		}
+	case task.EdgeTimePreferences:
+		ids := make([]ent.Value, 0, len(m.time_preferences))
+		for id := range m.time_preferences {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TaskMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedcategories != nil {
 		edges = append(edges, task.EdgeCategories)
+	}
+	if m.removedtime_preferences != nil {
+		edges = append(edges, task.EdgeTimePreferences)
 	}
 	return edges
 }
@@ -4804,18 +4958,27 @@ func (m *TaskMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case task.EdgeTimePreferences:
+		ids := make([]ent.Value, 0, len(m.removedtime_preferences))
+		for id := range m.removedtime_preferences {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TaskMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedcategories {
 		edges = append(edges, task.EdgeCategories)
 	}
 	if m.cleareduser {
 		edges = append(edges, task.EdgeUser)
+	}
+	if m.clearedtime_preferences {
+		edges = append(edges, task.EdgeTimePreferences)
 	}
 	return edges
 }
@@ -4828,6 +4991,8 @@ func (m *TaskMutation) EdgeCleared(name string) bool {
 		return m.clearedcategories
 	case task.EdgeUser:
 		return m.cleareduser
+	case task.EdgeTimePreferences:
+		return m.clearedtime_preferences
 	}
 	return false
 }
@@ -4853,8 +5018,513 @@ func (m *TaskMutation) ResetEdge(name string) error {
 	case task.EdgeUser:
 		m.ResetUser()
 		return nil
+	case task.EdgeTimePreferences:
+		m.ResetTimePreferences()
+		return nil
 	}
 	return fmt.Errorf("unknown Task edge %s", name)
+}
+
+// TimePreferenceMutation represents an operation that mutates the TimePreference nodes in the graph.
+type TimePreferenceMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	day           *string
+	clearedFields map[string]struct{}
+	skills        map[int]struct{}
+	removedskills map[int]struct{}
+	clearedskills bool
+	tasks         map[int]struct{}
+	removedtasks  map[int]struct{}
+	clearedtasks  bool
+	done          bool
+	oldValue      func(context.Context) (*TimePreference, error)
+	predicates    []predicate.TimePreference
+}
+
+var _ ent.Mutation = (*TimePreferenceMutation)(nil)
+
+// timepreferenceOption allows management of the mutation configuration using functional options.
+type timepreferenceOption func(*TimePreferenceMutation)
+
+// newTimePreferenceMutation creates new mutation for the TimePreference entity.
+func newTimePreferenceMutation(c config, op Op, opts ...timepreferenceOption) *TimePreferenceMutation {
+	m := &TimePreferenceMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeTimePreference,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withTimePreferenceID sets the ID field of the mutation.
+func withTimePreferenceID(id int) timepreferenceOption {
+	return func(m *TimePreferenceMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *TimePreference
+		)
+		m.oldValue = func(ctx context.Context) (*TimePreference, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().TimePreference.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withTimePreference sets the old TimePreference of the mutation.
+func withTimePreference(node *TimePreference) timepreferenceOption {
+	return func(m *TimePreferenceMutation) {
+		m.oldValue = func(context.Context) (*TimePreference, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m TimePreferenceMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m TimePreferenceMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *TimePreferenceMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *TimePreferenceMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().TimePreference.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetDay sets the "day" field.
+func (m *TimePreferenceMutation) SetDay(s string) {
+	m.day = &s
+}
+
+// Day returns the value of the "day" field in the mutation.
+func (m *TimePreferenceMutation) Day() (r string, exists bool) {
+	v := m.day
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDay returns the old "day" field's value of the TimePreference entity.
+// If the TimePreference object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TimePreferenceMutation) OldDay(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDay is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDay requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDay: %w", err)
+	}
+	return oldValue.Day, nil
+}
+
+// ResetDay resets all changes to the "day" field.
+func (m *TimePreferenceMutation) ResetDay() {
+	m.day = nil
+}
+
+// AddSkillIDs adds the "skills" edge to the Skill entity by ids.
+func (m *TimePreferenceMutation) AddSkillIDs(ids ...int) {
+	if m.skills == nil {
+		m.skills = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.skills[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSkills clears the "skills" edge to the Skill entity.
+func (m *TimePreferenceMutation) ClearSkills() {
+	m.clearedskills = true
+}
+
+// SkillsCleared reports if the "skills" edge to the Skill entity was cleared.
+func (m *TimePreferenceMutation) SkillsCleared() bool {
+	return m.clearedskills
+}
+
+// RemoveSkillIDs removes the "skills" edge to the Skill entity by IDs.
+func (m *TimePreferenceMutation) RemoveSkillIDs(ids ...int) {
+	if m.removedskills == nil {
+		m.removedskills = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.skills, ids[i])
+		m.removedskills[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSkills returns the removed IDs of the "skills" edge to the Skill entity.
+func (m *TimePreferenceMutation) RemovedSkillsIDs() (ids []int) {
+	for id := range m.removedskills {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SkillsIDs returns the "skills" edge IDs in the mutation.
+func (m *TimePreferenceMutation) SkillsIDs() (ids []int) {
+	for id := range m.skills {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSkills resets all changes to the "skills" edge.
+func (m *TimePreferenceMutation) ResetSkills() {
+	m.skills = nil
+	m.clearedskills = false
+	m.removedskills = nil
+}
+
+// AddTaskIDs adds the "tasks" edge to the Task entity by ids.
+func (m *TimePreferenceMutation) AddTaskIDs(ids ...int) {
+	if m.tasks == nil {
+		m.tasks = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.tasks[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTasks clears the "tasks" edge to the Task entity.
+func (m *TimePreferenceMutation) ClearTasks() {
+	m.clearedtasks = true
+}
+
+// TasksCleared reports if the "tasks" edge to the Task entity was cleared.
+func (m *TimePreferenceMutation) TasksCleared() bool {
+	return m.clearedtasks
+}
+
+// RemoveTaskIDs removes the "tasks" edge to the Task entity by IDs.
+func (m *TimePreferenceMutation) RemoveTaskIDs(ids ...int) {
+	if m.removedtasks == nil {
+		m.removedtasks = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.tasks, ids[i])
+		m.removedtasks[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTasks returns the removed IDs of the "tasks" edge to the Task entity.
+func (m *TimePreferenceMutation) RemovedTasksIDs() (ids []int) {
+	for id := range m.removedtasks {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TasksIDs returns the "tasks" edge IDs in the mutation.
+func (m *TimePreferenceMutation) TasksIDs() (ids []int) {
+	for id := range m.tasks {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTasks resets all changes to the "tasks" edge.
+func (m *TimePreferenceMutation) ResetTasks() {
+	m.tasks = nil
+	m.clearedtasks = false
+	m.removedtasks = nil
+}
+
+// Where appends a list predicates to the TimePreferenceMutation builder.
+func (m *TimePreferenceMutation) Where(ps ...predicate.TimePreference) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the TimePreferenceMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *TimePreferenceMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.TimePreference, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *TimePreferenceMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *TimePreferenceMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (TimePreference).
+func (m *TimePreferenceMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *TimePreferenceMutation) Fields() []string {
+	fields := make([]string, 0, 1)
+	if m.day != nil {
+		fields = append(fields, timepreference.FieldDay)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *TimePreferenceMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case timepreference.FieldDay:
+		return m.Day()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *TimePreferenceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case timepreference.FieldDay:
+		return m.OldDay(ctx)
+	}
+	return nil, fmt.Errorf("unknown TimePreference field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TimePreferenceMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case timepreference.FieldDay:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDay(v)
+		return nil
+	}
+	return fmt.Errorf("unknown TimePreference field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *TimePreferenceMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *TimePreferenceMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TimePreferenceMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown TimePreference numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *TimePreferenceMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *TimePreferenceMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *TimePreferenceMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown TimePreference nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *TimePreferenceMutation) ResetField(name string) error {
+	switch name {
+	case timepreference.FieldDay:
+		m.ResetDay()
+		return nil
+	}
+	return fmt.Errorf("unknown TimePreference field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *TimePreferenceMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.skills != nil {
+		edges = append(edges, timepreference.EdgeSkills)
+	}
+	if m.tasks != nil {
+		edges = append(edges, timepreference.EdgeTasks)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *TimePreferenceMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case timepreference.EdgeSkills:
+		ids := make([]ent.Value, 0, len(m.skills))
+		for id := range m.skills {
+			ids = append(ids, id)
+		}
+		return ids
+	case timepreference.EdgeTasks:
+		ids := make([]ent.Value, 0, len(m.tasks))
+		for id := range m.tasks {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *TimePreferenceMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedskills != nil {
+		edges = append(edges, timepreference.EdgeSkills)
+	}
+	if m.removedtasks != nil {
+		edges = append(edges, timepreference.EdgeTasks)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *TimePreferenceMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case timepreference.EdgeSkills:
+		ids := make([]ent.Value, 0, len(m.removedskills))
+		for id := range m.removedskills {
+			ids = append(ids, id)
+		}
+		return ids
+	case timepreference.EdgeTasks:
+		ids := make([]ent.Value, 0, len(m.removedtasks))
+		for id := range m.removedtasks {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *TimePreferenceMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedskills {
+		edges = append(edges, timepreference.EdgeSkills)
+	}
+	if m.clearedtasks {
+		edges = append(edges, timepreference.EdgeTasks)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *TimePreferenceMutation) EdgeCleared(name string) bool {
+	switch name {
+	case timepreference.EdgeSkills:
+		return m.clearedskills
+	case timepreference.EdgeTasks:
+		return m.clearedtasks
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *TimePreferenceMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown TimePreference unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *TimePreferenceMutation) ResetEdge(name string) error {
+	switch name {
+	case timepreference.EdgeSkills:
+		m.ResetSkills()
+		return nil
+	case timepreference.EdgeTasks:
+		m.ResetTasks()
+		return nil
+	}
+	return fmt.Errorf("unknown TimePreference edge %s", name)
 }
 
 // UserMutation represents an operation that mutates the User nodes in the graph.

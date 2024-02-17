@@ -41,9 +41,11 @@ type TaskEdges struct {
 	Categories []*Category `json:"categories,omitempty"`
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
+	// TimePreferences holds the value of the time_preferences edge.
+	TimePreferences []*TimePreference `json:"time_preferences,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // CategoriesOrErr returns the Categories value or an error if the edge
@@ -66,6 +68,15 @@ func (e TaskEdges) UserOrErr() (*User, error) {
 		return e.User, nil
 	}
 	return nil, &NotLoadedError{edge: "user"}
+}
+
+// TimePreferencesOrErr returns the TimePreferences value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaskEdges) TimePreferencesOrErr() ([]*TimePreference, error) {
+	if e.loadedTypes[2] {
+		return e.TimePreferences, nil
+	}
+	return nil, &NotLoadedError{edge: "time_preferences"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -160,6 +171,11 @@ func (t *Task) QueryCategories() *CategoryQuery {
 // QueryUser queries the "user" edge of the Task entity.
 func (t *Task) QueryUser() *UserQuery {
 	return NewTaskClient(t.config).QueryUser(t)
+}
+
+// QueryTimePreferences queries the "time_preferences" edge of the Task entity.
+func (t *Task) QueryTimePreferences() *TimePreferenceQuery {
+	return NewTaskClient(t.config).QueryTimePreferences(t)
 }
 
 // Update returns a builder for updating this Task.

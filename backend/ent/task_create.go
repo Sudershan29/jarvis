@@ -5,6 +5,7 @@ package ent
 import (
 	"backend/ent/category"
 	"backend/ent/task"
+	"backend/ent/timepreference"
 	"backend/ent/user"
 	"context"
 	"errors"
@@ -116,6 +117,21 @@ func (tc *TaskCreate) SetNillableUserID(id *int) *TaskCreate {
 // SetUser sets the "user" edge to the User entity.
 func (tc *TaskCreate) SetUser(u *User) *TaskCreate {
 	return tc.SetUserID(u.ID)
+}
+
+// AddTimePreferenceIDs adds the "time_preferences" edge to the TimePreference entity by IDs.
+func (tc *TaskCreate) AddTimePreferenceIDs(ids ...int) *TaskCreate {
+	tc.mutation.AddTimePreferenceIDs(ids...)
+	return tc
+}
+
+// AddTimePreferences adds the "time_preferences" edges to the TimePreference entity.
+func (tc *TaskCreate) AddTimePreferences(t ...*TimePreference) *TaskCreate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return tc.AddTimePreferenceIDs(ids...)
 }
 
 // Mutation returns the TaskMutation object of the builder.
@@ -251,6 +267,22 @@ func (tc *TaskCreate) createSpec() (*Task, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.user_tasks = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := tc.mutation.TimePreferencesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   task.TimePreferencesTable,
+			Columns: task.TimePreferencesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(timepreference.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

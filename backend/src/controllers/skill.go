@@ -1,9 +1,11 @@
 package controllers
 
 import (
-	"net/http"
 	"backend/src/models"
-  	"github.com/gin-gonic/gin"
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 /*
@@ -15,9 +17,9 @@ import (
 */
 
 type createSkillInput struct {
-	Name  	   string   `json:"name" binding:"required"`
+	Name       string   `json:"name" binding:"required"`
 	Level      string   `json:"level"`
-	Duration   int 	    `json:"duration"`
+	Duration   int      `json:"duration"`
 	Categories []string `json:"categories"`
 }
 
@@ -32,9 +34,8 @@ func SkillCreate(c *gin.Context) {
 		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 200, "skill": skill.Marshal() })
+	c.JSON(http.StatusOK, gin.H{"code": 200, "skill": skill.Marshal()})
 }
-
 
 func SkillAll(c *gin.Context) {
 	skills, err := models.SkillShowAll(CurrentUser(c))
@@ -46,5 +47,19 @@ func SkillAll(c *gin.Context) {
 	for _, skill := range skills {
 		result = append(result, skill.Marshal())
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 200, "skills": result })
+	c.JSON(http.StatusOK, gin.H{"code": 200, "skills": result})
+}
+
+func SkillDelete(c *gin.Context) {
+	skillID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid skill ID"})
+		return
+	}
+	err = models.SkillDelete(skillID, CurrentUser(c))
+	if err != nil {
+		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 200, "message": "Skill deleted successfully"})
 }

@@ -167,6 +167,17 @@ var (
 			},
 		},
 	}
+	// TimePreferencesColumns holds the columns for the "time_preferences" table.
+	TimePreferencesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "day", Type: field.TypeString},
+	}
+	// TimePreferencesTable holds the schema information for the "time_preferences" table.
+	TimePreferencesTable = &schema.Table{
+		Name:       "time_preferences",
+		Columns:    TimePreferencesColumns,
+		PrimaryKey: []*schema.Column{TimePreferencesColumns[0]},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -290,6 +301,56 @@ var (
 			},
 		},
 	}
+	// TimePreferenceSkillsColumns holds the columns for the "time_preference_skills" table.
+	TimePreferenceSkillsColumns = []*schema.Column{
+		{Name: "time_preference_id", Type: field.TypeInt},
+		{Name: "skill_id", Type: field.TypeInt},
+	}
+	// TimePreferenceSkillsTable holds the schema information for the "time_preference_skills" table.
+	TimePreferenceSkillsTable = &schema.Table{
+		Name:       "time_preference_skills",
+		Columns:    TimePreferenceSkillsColumns,
+		PrimaryKey: []*schema.Column{TimePreferenceSkillsColumns[0], TimePreferenceSkillsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "time_preference_skills_time_preference_id",
+				Columns:    []*schema.Column{TimePreferenceSkillsColumns[0]},
+				RefColumns: []*schema.Column{TimePreferencesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "time_preference_skills_skill_id",
+				Columns:    []*schema.Column{TimePreferenceSkillsColumns[1]},
+				RefColumns: []*schema.Column{SkillsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
+	// TimePreferenceTasksColumns holds the columns for the "time_preference_tasks" table.
+	TimePreferenceTasksColumns = []*schema.Column{
+		{Name: "time_preference_id", Type: field.TypeInt},
+		{Name: "task_id", Type: field.TypeInt},
+	}
+	// TimePreferenceTasksTable holds the schema information for the "time_preference_tasks" table.
+	TimePreferenceTasksTable = &schema.Table{
+		Name:       "time_preference_tasks",
+		Columns:    TimePreferenceTasksColumns,
+		PrimaryKey: []*schema.Column{TimePreferenceTasksColumns[0], TimePreferenceTasksColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "time_preference_tasks_time_preference_id",
+				Columns:    []*schema.Column{TimePreferenceTasksColumns[0]},
+				RefColumns: []*schema.Column{TimePreferencesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "time_preference_tasks_task_id",
+				Columns:    []*schema.Column{TimePreferenceTasksColumns[1]},
+				RefColumns: []*schema.Column{TasksColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		CategoriesTable,
@@ -299,11 +360,14 @@ var (
 		PreferencesTable,
 		SkillsTable,
 		TasksTable,
+		TimePreferencesTable,
 		UsersTable,
 		CategorySkillsTable,
 		CategoryTasksTable,
 		CategoryGoalsTable,
 		CategoryHobbiesTable,
+		TimePreferenceSkillsTable,
+		TimePreferenceTasksTable,
 	}
 )
 
@@ -323,4 +387,8 @@ func init() {
 	CategoryGoalsTable.ForeignKeys[1].RefTable = GoalsTable
 	CategoryHobbiesTable.ForeignKeys[0].RefTable = CategoriesTable
 	CategoryHobbiesTable.ForeignKeys[1].RefTable = HobbiesTable
+	TimePreferenceSkillsTable.ForeignKeys[0].RefTable = TimePreferencesTable
+	TimePreferenceSkillsTable.ForeignKeys[1].RefTable = SkillsTable
+	TimePreferenceTasksTable.ForeignKeys[0].RefTable = TimePreferencesTable
+	TimePreferenceTasksTable.ForeignKeys[1].RefTable = TasksTable
 }

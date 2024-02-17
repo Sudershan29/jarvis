@@ -2,9 +2,9 @@ package models
 
 import (
 	"backend/ent"
-	"backend/src/lib"
 	"backend/ent/skill"
 	"backend/ent/user"
+	"backend/src/lib"
 )
 
 type SkillModel struct {
@@ -12,13 +12,13 @@ type SkillModel struct {
 }
 
 type SkillJSON struct {
-	Name 	   string `json:"name"`
-	Level	   string `json:"level"`  
-	Duration   int 	 `json:"duration"`
-	Categories []string `json:categories`
+	Name       string   `json:"name"`
+	Level      string   `json:"level"`
+	Duration   int      `json:"duration"`
+	Categories []string `json:"categories"`
 }
 
-func (s SkillModel) Categories() ([]*ent.Category, error){
+func (s SkillModel) Categories() ([]*ent.Category, error) {
 	dbClient := lib.DbCtx
 	return s.Skill.QueryCategories().All(dbClient.Context)
 }
@@ -26,11 +26,13 @@ func (s SkillModel) Categories() ([]*ent.Category, error){
 func (s SkillModel) Marshal() SkillJSON {
 	catArr := make([]string, 0)
 	categories, _ := s.Categories()
-	for _, cat := range categories { catArr = append(catArr, cat.Name) }
+	for _, cat := range categories {
+		catArr = append(catArr, cat.Name)
+	}
 	return SkillJSON{s.Skill.Name, s.Skill.Level, s.Skill.Duration, catArr}
 }
 
-/* * * * * * * * * * * * 
+/* * * * * * * * * * * *
 
 		APIs
 
@@ -40,21 +42,25 @@ func SkillCreate(name, level string, duration int, categories []string, currUser
 	currUser.Load()
 	dbClient := lib.DbCtx
 	sOrm := dbClient.Client.Skill.
-				Create().
-				SetName(name).
-				SetUser(currUser.Model.User).
-				SetDuration(duration).
-				SetLevel(level)
+		Create().
+		SetName(name).
+		SetUser(currUser.Model.User).
+		SetDuration(duration).
+		SetLevel(level)
 
 	for _, cat := range categories {
 		catModel, err := CategoryFindOrCreate(cat, currUser)
-		if err != nil { continue }
+		if err != nil {
+			continue
+		}
 		sOrm.AddCategories(catModel.Category)
 	}
 
 	s, err := sOrm.Save(dbClient.Context)
 
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	skill := SkillModel{s}
 	return &skill, nil
@@ -63,10 +69,10 @@ func SkillCreate(name, level string, duration int, categories []string, currUser
 func SkillShowAll(currUser *JwtUser) ([]*SkillModel, error) {
 	dbClient := lib.DbCtx
 	skills, err := dbClient.Client.Skill.
-					Query().
-					Where(skill.HasUserWith(user.UUID(currUser.UserId))).
-					All(dbClient.Context)
-	
+		Query().
+		Where(skill.HasUserWith(user.UUID(currUser.UserId))).
+		All(dbClient.Context)
+
 	if err != nil {
 		return make([]*SkillModel, 0), err
 	}
@@ -76,4 +82,18 @@ func SkillShowAll(currUser *JwtUser) ([]*SkillModel, error) {
 		result = append(result, &SkillModel{skill})
 	}
 	return result, nil
+}
+
+func SkillDelete(skillID int, currUser *JwtUser) error {
+	dbClient := lib.DbCtx
+	err := dbClient.Client.Skill.
+		DeleteOneID(skillID).
+		Where(skill.HasUserWith(user.UUID(currUser.UserId))).
+		Exec(dbClient.Context)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -27,5 +27,8 @@ type Skill func(*sql.Selector)
 // Task is the predicate function for task builders.
 type Task func(*sql.Selector)
 
+// TimePreference is the predicate function for timepreference builders.
+type TimePreference func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

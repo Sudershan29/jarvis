@@ -6,6 +6,7 @@ import (
 	"backend/ent/category"
 	"backend/ent/predicate"
 	"backend/ent/skill"
+	"backend/ent/timepreference"
 	"backend/ent/user"
 	"context"
 	"errors"
@@ -132,6 +133,21 @@ func (su *SkillUpdate) SetUser(u *User) *SkillUpdate {
 	return su.SetUserID(u.ID)
 }
 
+// AddTimePreferenceIDs adds the "time_preferences" edge to the TimePreference entity by IDs.
+func (su *SkillUpdate) AddTimePreferenceIDs(ids ...int) *SkillUpdate {
+	su.mutation.AddTimePreferenceIDs(ids...)
+	return su
+}
+
+// AddTimePreferences adds the "time_preferences" edges to the TimePreference entity.
+func (su *SkillUpdate) AddTimePreferences(t ...*TimePreference) *SkillUpdate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return su.AddTimePreferenceIDs(ids...)
+}
+
 // Mutation returns the SkillMutation object of the builder.
 func (su *SkillUpdate) Mutation() *SkillMutation {
 	return su.mutation
@@ -162,6 +178,27 @@ func (su *SkillUpdate) RemoveCategories(c ...*Category) *SkillUpdate {
 func (su *SkillUpdate) ClearUser() *SkillUpdate {
 	su.mutation.ClearUser()
 	return su
+}
+
+// ClearTimePreferences clears all "time_preferences" edges to the TimePreference entity.
+func (su *SkillUpdate) ClearTimePreferences() *SkillUpdate {
+	su.mutation.ClearTimePreferences()
+	return su
+}
+
+// RemoveTimePreferenceIDs removes the "time_preferences" edge to TimePreference entities by IDs.
+func (su *SkillUpdate) RemoveTimePreferenceIDs(ids ...int) *SkillUpdate {
+	su.mutation.RemoveTimePreferenceIDs(ids...)
+	return su
+}
+
+// RemoveTimePreferences removes "time_preferences" edges to TimePreference entities.
+func (su *SkillUpdate) RemoveTimePreferences(t ...*TimePreference) *SkillUpdate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return su.RemoveTimePreferenceIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -295,6 +332,51 @@ func (su *SkillUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if su.mutation.TimePreferencesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   skill.TimePreferencesTable,
+			Columns: skill.TimePreferencesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(timepreference.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.RemovedTimePreferencesIDs(); len(nodes) > 0 && !su.mutation.TimePreferencesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   skill.TimePreferencesTable,
+			Columns: skill.TimePreferencesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(timepreference.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.TimePreferencesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   skill.TimePreferencesTable,
+			Columns: skill.TimePreferencesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(timepreference.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, su.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{skill.Label}
@@ -417,6 +499,21 @@ func (suo *SkillUpdateOne) SetUser(u *User) *SkillUpdateOne {
 	return suo.SetUserID(u.ID)
 }
 
+// AddTimePreferenceIDs adds the "time_preferences" edge to the TimePreference entity by IDs.
+func (suo *SkillUpdateOne) AddTimePreferenceIDs(ids ...int) *SkillUpdateOne {
+	suo.mutation.AddTimePreferenceIDs(ids...)
+	return suo
+}
+
+// AddTimePreferences adds the "time_preferences" edges to the TimePreference entity.
+func (suo *SkillUpdateOne) AddTimePreferences(t ...*TimePreference) *SkillUpdateOne {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return suo.AddTimePreferenceIDs(ids...)
+}
+
 // Mutation returns the SkillMutation object of the builder.
 func (suo *SkillUpdateOne) Mutation() *SkillMutation {
 	return suo.mutation
@@ -447,6 +544,27 @@ func (suo *SkillUpdateOne) RemoveCategories(c ...*Category) *SkillUpdateOne {
 func (suo *SkillUpdateOne) ClearUser() *SkillUpdateOne {
 	suo.mutation.ClearUser()
 	return suo
+}
+
+// ClearTimePreferences clears all "time_preferences" edges to the TimePreference entity.
+func (suo *SkillUpdateOne) ClearTimePreferences() *SkillUpdateOne {
+	suo.mutation.ClearTimePreferences()
+	return suo
+}
+
+// RemoveTimePreferenceIDs removes the "time_preferences" edge to TimePreference entities by IDs.
+func (suo *SkillUpdateOne) RemoveTimePreferenceIDs(ids ...int) *SkillUpdateOne {
+	suo.mutation.RemoveTimePreferenceIDs(ids...)
+	return suo
+}
+
+// RemoveTimePreferences removes "time_preferences" edges to TimePreference entities.
+func (suo *SkillUpdateOne) RemoveTimePreferences(t ...*TimePreference) *SkillUpdateOne {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return suo.RemoveTimePreferenceIDs(ids...)
 }
 
 // Where appends a list predicates to the SkillUpdate builder.
@@ -603,6 +721,51 @@ func (suo *SkillUpdateOne) sqlSave(ctx context.Context) (_node *Skill, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if suo.mutation.TimePreferencesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   skill.TimePreferencesTable,
+			Columns: skill.TimePreferencesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(timepreference.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.RemovedTimePreferencesIDs(); len(nodes) > 0 && !suo.mutation.TimePreferencesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   skill.TimePreferencesTable,
+			Columns: skill.TimePreferencesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(timepreference.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.TimePreferencesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   skill.TimePreferencesTable,
+			Columns: skill.TimePreferencesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(timepreference.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

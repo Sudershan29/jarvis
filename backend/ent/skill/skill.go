@@ -28,6 +28,8 @@ const (
 	EdgeCategories = "categories"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
+	// EdgeTimePreferences holds the string denoting the time_preferences edge name in mutations.
+	EdgeTimePreferences = "time_preferences"
 	// Table holds the table name of the skill in the database.
 	Table = "skills"
 	// CategoriesTable is the table that holds the categories relation/edge. The primary key declared below.
@@ -42,6 +44,11 @@ const (
 	UserInverseTable = "users"
 	// UserColumn is the table column denoting the user relation/edge.
 	UserColumn = "user_skills"
+	// TimePreferencesTable is the table that holds the time_preferences relation/edge. The primary key declared below.
+	TimePreferencesTable = "time_preference_skills"
+	// TimePreferencesInverseTable is the table name for the TimePreference entity.
+	// It exists in this package in order to avoid circular dependency with the "timepreference" package.
+	TimePreferencesInverseTable = "time_preferences"
 )
 
 // Columns holds all SQL columns for skill fields.
@@ -64,6 +71,9 @@ var (
 	// CategoriesPrimaryKey and CategoriesColumn2 are the table columns denoting the
 	// primary key for the categories relation (M2M).
 	CategoriesPrimaryKey = []string{"category_id", "skill_id"}
+	// TimePreferencesPrimaryKey and TimePreferencesColumn2 are the table columns denoting the
+	// primary key for the time_preferences relation (M2M).
+	TimePreferencesPrimaryKey = []string{"time_preference_id", "skill_id"}
 )
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -143,6 +153,20 @@ func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newUserStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTimePreferencesCount orders the results by time_preferences count.
+func ByTimePreferencesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newTimePreferencesStep(), opts...)
+	}
+}
+
+// ByTimePreferences orders the results by time_preferences terms.
+func ByTimePreferences(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTimePreferencesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newCategoriesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -155,5 +179,12 @@ func newUserStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UserInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
+	)
+}
+func newTimePreferencesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TimePreferencesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, true, TimePreferencesTable, TimePreferencesPrimaryKey...),
 	)
 }

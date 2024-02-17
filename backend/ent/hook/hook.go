@@ -92,6 +92,18 @@ func (f TaskFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TaskMutation", m)
 }
 
+// The TimePreferenceFunc type is an adapter to allow the use of ordinary
+// function as TimePreference mutator.
+type TimePreferenceFunc func(context.Context, *ent.TimePreferenceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TimePreferenceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TimePreferenceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TimePreferenceMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)

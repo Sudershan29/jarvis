@@ -17,6 +17,7 @@ import (
 	"backend/ent/preference"
 	"backend/ent/skill"
 	"backend/ent/task"
+	"backend/ent/timepreference"
 	"backend/ent/user"
 
 	"entgo.io/ent"
@@ -44,6 +45,8 @@ type Client struct {
 	Skill *SkillClient
 	// Task is the client for interacting with the Task builders.
 	Task *TaskClient
+	// TimePreference is the client for interacting with the TimePreference builders.
+	TimePreference *TimePreferenceClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -66,6 +69,7 @@ func (c *Client) init() {
 	c.Preference = NewPreferenceClient(c.config)
 	c.Skill = NewSkillClient(c.config)
 	c.Task = NewTaskClient(c.config)
+	c.TimePreference = NewTimePreferenceClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -147,16 +151,17 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Category:   NewCategoryClient(cfg),
-		Goal:       NewGoalClient(cfg),
-		Hobby:      NewHobbyClient(cfg),
-		Meeting:    NewMeetingClient(cfg),
-		Preference: NewPreferenceClient(cfg),
-		Skill:      NewSkillClient(cfg),
-		Task:       NewTaskClient(cfg),
-		User:       NewUserClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		Category:       NewCategoryClient(cfg),
+		Goal:           NewGoalClient(cfg),
+		Hobby:          NewHobbyClient(cfg),
+		Meeting:        NewMeetingClient(cfg),
+		Preference:     NewPreferenceClient(cfg),
+		Skill:          NewSkillClient(cfg),
+		Task:           NewTaskClient(cfg),
+		TimePreference: NewTimePreferenceClient(cfg),
+		User:           NewUserClient(cfg),
 	}, nil
 }
 
@@ -174,16 +179,17 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Category:   NewCategoryClient(cfg),
-		Goal:       NewGoalClient(cfg),
-		Hobby:      NewHobbyClient(cfg),
-		Meeting:    NewMeetingClient(cfg),
-		Preference: NewPreferenceClient(cfg),
-		Skill:      NewSkillClient(cfg),
-		Task:       NewTaskClient(cfg),
-		User:       NewUserClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		Category:       NewCategoryClient(cfg),
+		Goal:           NewGoalClient(cfg),
+		Hobby:          NewHobbyClient(cfg),
+		Meeting:        NewMeetingClient(cfg),
+		Preference:     NewPreferenceClient(cfg),
+		Skill:          NewSkillClient(cfg),
+		Task:           NewTaskClient(cfg),
+		TimePreference: NewTimePreferenceClient(cfg),
+		User:           NewUserClient(cfg),
 	}, nil
 }
 
@@ -213,7 +219,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Skill, c.Task, c.User,
+		c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Skill, c.Task,
+		c.TimePreference, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -223,7 +230,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Skill, c.Task, c.User,
+		c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Skill, c.Task,
+		c.TimePreference, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -246,6 +254,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Skill.mutate(ctx, m)
 	case *TaskMutation:
 		return c.Task.mutate(ctx, m)
+	case *TimePreferenceMutation:
+		return c.TimePreference.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
@@ -1144,6 +1154,22 @@ func (c *SkillClient) QueryUser(s *Skill) *UserQuery {
 	return query
 }
 
+// QueryTimePreferences queries the time_preferences edge of a Skill.
+func (c *SkillClient) QueryTimePreferences(s *Skill) *TimePreferenceQuery {
+	query := (&TimePreferenceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(skill.Table, skill.FieldID, id),
+			sqlgraph.To(timepreference.Table, timepreference.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, skill.TimePreferencesTable, skill.TimePreferencesPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *SkillClient) Hooks() []Hook {
 	return c.hooks.Skill
@@ -1294,6 +1320,22 @@ func (c *TaskClient) QueryUser(t *Task) *UserQuery {
 	return query
 }
 
+// QueryTimePreferences queries the time_preferences edge of a Task.
+func (c *TaskClient) QueryTimePreferences(t *Task) *TimePreferenceQuery {
+	query := (&TimePreferenceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(task.Table, task.FieldID, id),
+			sqlgraph.To(timepreference.Table, timepreference.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, task.TimePreferencesTable, task.TimePreferencesPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TaskClient) Hooks() []Hook {
 	return c.hooks.Task
@@ -1316,6 +1358,156 @@ func (c *TaskClient) mutate(ctx context.Context, m *TaskMutation) (Value, error)
 		return (&TaskDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Task mutation op: %q", m.Op())
+	}
+}
+
+// TimePreferenceClient is a client for the TimePreference schema.
+type TimePreferenceClient struct {
+	config
+}
+
+// NewTimePreferenceClient returns a client for the TimePreference from the given config.
+func NewTimePreferenceClient(c config) *TimePreferenceClient {
+	return &TimePreferenceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `timepreference.Hooks(f(g(h())))`.
+func (c *TimePreferenceClient) Use(hooks ...Hook) {
+	c.hooks.TimePreference = append(c.hooks.TimePreference, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `timepreference.Intercept(f(g(h())))`.
+func (c *TimePreferenceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TimePreference = append(c.inters.TimePreference, interceptors...)
+}
+
+// Create returns a builder for creating a TimePreference entity.
+func (c *TimePreferenceClient) Create() *TimePreferenceCreate {
+	mutation := newTimePreferenceMutation(c.config, OpCreate)
+	return &TimePreferenceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TimePreference entities.
+func (c *TimePreferenceClient) CreateBulk(builders ...*TimePreferenceCreate) *TimePreferenceCreateBulk {
+	return &TimePreferenceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TimePreference.
+func (c *TimePreferenceClient) Update() *TimePreferenceUpdate {
+	mutation := newTimePreferenceMutation(c.config, OpUpdate)
+	return &TimePreferenceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TimePreferenceClient) UpdateOne(tp *TimePreference) *TimePreferenceUpdateOne {
+	mutation := newTimePreferenceMutation(c.config, OpUpdateOne, withTimePreference(tp))
+	return &TimePreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TimePreferenceClient) UpdateOneID(id int) *TimePreferenceUpdateOne {
+	mutation := newTimePreferenceMutation(c.config, OpUpdateOne, withTimePreferenceID(id))
+	return &TimePreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TimePreference.
+func (c *TimePreferenceClient) Delete() *TimePreferenceDelete {
+	mutation := newTimePreferenceMutation(c.config, OpDelete)
+	return &TimePreferenceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TimePreferenceClient) DeleteOne(tp *TimePreference) *TimePreferenceDeleteOne {
+	return c.DeleteOneID(tp.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TimePreferenceClient) DeleteOneID(id int) *TimePreferenceDeleteOne {
+	builder := c.Delete().Where(timepreference.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TimePreferenceDeleteOne{builder}
+}
+
+// Query returns a query builder for TimePreference.
+func (c *TimePreferenceClient) Query() *TimePreferenceQuery {
+	return &TimePreferenceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTimePreference},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TimePreference entity by its id.
+func (c *TimePreferenceClient) Get(ctx context.Context, id int) (*TimePreference, error) {
+	return c.Query().Where(timepreference.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TimePreferenceClient) GetX(ctx context.Context, id int) *TimePreference {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySkills queries the skills edge of a TimePreference.
+func (c *TimePreferenceClient) QuerySkills(tp *TimePreference) *SkillQuery {
+	query := (&SkillClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := tp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(timepreference.Table, timepreference.FieldID, id),
+			sqlgraph.To(skill.Table, skill.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, timepreference.SkillsTable, timepreference.SkillsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(tp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTasks queries the tasks edge of a TimePreference.
+func (c *TimePreferenceClient) QueryTasks(tp *TimePreference) *TaskQuery {
+	query := (&TaskClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := tp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(timepreference.Table, timepreference.FieldID, id),
+			sqlgraph.To(task.Table, task.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, timepreference.TasksTable, timepreference.TasksPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(tp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TimePreferenceClient) Hooks() []Hook {
+	return c.hooks.TimePreference
+}
+
+// Interceptors returns the client interceptors.
+func (c *TimePreferenceClient) Interceptors() []Interceptor {
+	return c.inters.TimePreference
+}
+
+func (c *TimePreferenceClient) mutate(ctx context.Context, m *TimePreferenceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TimePreferenceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TimePreferenceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TimePreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TimePreferenceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TimePreference mutation op: %q", m.Op())
 	}
 }
 
@@ -1552,9 +1744,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Category, Goal, Hobby, Meeting, Preference, Skill, Task, User []ent.Hook
+		Category, Goal, Hobby, Meeting, Preference, Skill, Task, TimePreference,
+		User []ent.Hook
 	}
 	inters struct {
-		Category, Goal, Hobby, Meeting, Preference, Skill, Task, User []ent.Interceptor
+		Category, Goal, Hobby, Meeting, Preference, Skill, Task, TimePreference,
+		User []ent.Interceptor
 	}
 )
