@@ -2,9 +2,9 @@ package models
 
 import (
 	"backend/ent"
-	"backend/src/lib"
 	"backend/ent/hobby"
 	"backend/ent/user"
+	"backend/src/lib"
 )
 
 type HobbyModel struct {
@@ -12,12 +12,12 @@ type HobbyModel struct {
 }
 
 type HobbyJSON struct {
-	Name 	     string    `json:"name"`
-	Description	 string    `json:"description"`
-	Categories []string    `json:categories`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Categories  []string `json:"categories"`
 }
 
-func (s HobbyModel) Categories() ([]*ent.Category, error){
+func (s HobbyModel) Categories() ([]*ent.Category, error) {
 	dbClient := lib.DbCtx
 	return s.Hobby.QueryCategories().All(dbClient.Context)
 }
@@ -25,11 +25,13 @@ func (s HobbyModel) Categories() ([]*ent.Category, error){
 func (s HobbyModel) Marshal() HobbyJSON {
 	catArr := make([]string, 0)
 	categories, _ := s.Categories()
-	for _, cat := range categories { catArr = append(catArr, cat.Name) }
+	for _, cat := range categories {
+		catArr = append(catArr, cat.Name)
+	}
 	return HobbyJSON{s.Hobby.Name, s.Hobby.Description, catArr}
 }
 
-/* * * * * * * * * * * * 
+/* * * * * * * * * * * *
 
 		APIs
 
@@ -39,20 +41,24 @@ func HobbyCreate(name, description string, categories []string, currUser *JwtUse
 	currUser.Load()
 	dbClient := lib.DbCtx
 	sOrm := dbClient.Client.Hobby.
-				Create().
-				SetName(name).
-				SetUser(currUser.Model.User).
-				SetDescription(description)
+		Create().
+		SetName(name).
+		SetUser(currUser.Model.User).
+		SetDescription(description)
 
 	for _, cat := range categories {
 		catModel, err := CategoryFindOrCreate(cat, currUser)
-		if err != nil { continue }
+		if err != nil {
+			continue
+		}
 		sOrm.AddCategories(catModel.Category)
 	}
 
 	s, err := sOrm.Save(dbClient.Context)
 
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	hobby := HobbyModel{s}
 	return &hobby, nil
@@ -61,10 +67,10 @@ func HobbyCreate(name, description string, categories []string, currUser *JwtUse
 func HobbyShowAll(currUser *JwtUser) ([]*HobbyModel, error) {
 	dbClient := lib.DbCtx
 	hobbies, err := dbClient.Client.Hobby.
-					Query().
-					Where(hobby.HasUserWith(user.UUID(currUser.UserId))).
-					All(dbClient.Context)
-	
+		Query().
+		Where(hobby.HasUserWith(user.UUID(currUser.UserId))).
+		All(dbClient.Context)
+
 	if err != nil {
 		return make([]*HobbyModel, 0), err
 	}

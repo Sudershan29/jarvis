@@ -2,9 +2,14 @@ package models
 
 import (
 	"backend/ent"
+	"backend/ent/proposal"
 	"backend/ent/task"
 	"backend/ent/user"
+	"backend/src/helpers"
 	"backend/src/lib"
+	"encoding/json"
+	"math"
+	"strings"
 	"time"
 )
 
@@ -13,6 +18,7 @@ type TaskModel struct {
 }
 
 type TaskJSON struct {
+	Id             int       `json:"id"`
 	Name           string    `json:"name"`
 	Description    string    `json:"description"`
 	Duration       int       `json:"duration"`
@@ -43,7 +49,7 @@ func (s TaskModel) Marshal() TaskJSON {
 		timePrefArr = append(timePrefArr, tp.Day)
 	}
 
-	return TaskJSON{s.Task.Name, s.Task.Description, s.Task.Duration, s.Task.Deadline, catArr, timePrefArr}
+	return TaskJSON{Id: s.Task.ID, Name: s.Task.Name, Description: s.Task.Description, Duration: s.Task.Duration, Deadline: s.Task.Deadline, Categories: catArr, TimePreference: timePrefArr}
 }
 
 /* * * * * * * * * * * *
@@ -120,4 +126,145 @@ func TaskDelete(taskID int, currUser *JwtUser) error {
 
 	// Delete the task
 	return dbClient.Client.Task.DeleteOne(task).Exec(dbClient.Context)
+}
+
+func (t *TaskModel) ProposalsWithTimeFilter(startTime time.Time, endTime time.Time) ([]*ProposalModel, error) {
+	dbClient := lib.DbCtx
+	ps, err := dbClient.Client.Proposal.
+		Query().
+		Where(
+			proposal.HasTaskWith(task.ID(t.Task.ID)),
+			proposal.ScheduledForGTE(startTime),
+			proposal.ScheduledForLTE(endTime),
+			proposal.StatusNEQ(proposal.StatusDeleted),
+		).
+		All(dbClient.Context)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var proposals []*ProposalModel
+
+	for _, p := range ps {
+		proposals = append(proposals, &ProposalModel{p})
+	}
+
+	return proposals, nil
+}
+
+func (t *TaskModel) HoursLeft(currDate time.Time) int {
+	thisWeekProposals, _ := t.ProposalsWithTimeFilter(t.Task.CreatedAt, helpers.EndOfWeek(currDate))
+
+	scheduled := 0
+	for _, p := range thisWeekProposals {
+		if p.Proposal.Status == proposal.StatusPending {
+			scheduled += p.Proposal.AllocatedDuration
+		} else if p.Proposal.Status == proposal.StatusDone {
+			scheduled += p.Proposal.AchievedDuration
+		}
+	}
+
+	return t.Task.Duration - scheduled
+}
+
+func (t *TaskModel) GetTaskTimePreferences() ([]string, error) {
+	dbClient := lib.DbCtx
+	timePrefs, err := dbClient.Client.Task.
+		Query().
+		Where(task.ID(t.Task.ID)).
+		QueryTimePreferences().
+		All(dbClient.Context)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var preferences []string
+	for _, tp := range timePrefs {
+		preferences = append(preferences, tp.Day)
+	}
+
+	return preferences, nil
+}
+
+func (t *TaskModel) PreferredDaysLeft(currDate time.Time) int {
+	preferredDays, _ := t.GetTaskTimePreferences()
+	if len(preferredDays) == 0 {
+		preferredDays = helpers.WEEK
+	}
+	scheduledAlready, _ := t.ProposalsWithTimeFilter(t.Task.CreatedAt, helpers.EndOfWeek(currDate))
+	idealNumberOfSchedules := t.idealNumberOfSchedules() - len(scheduledAlready)
+	if !t.Task.Deadline.IsZero() {
+		idealNumberOfSchedules = int(math.Min(float64(helpers.NumberOfPreferredDaysBetween(currDate, t.Task.Deadline, preferredDays)), float64(idealNumberOfSchedules)))
+	}
+	return idealNumberOfSchedules
+}
+
+func (t *TaskModel) idealNumberOfSchedules() int {
+	// Assuming Workload to be split into 3 hr blocks
+	return t.Task.Duration / 3
+}
+
+func (t *TaskModel) PreferredMaxHours() int {
+	return 6
+}
+
+func (t *TaskModel) PreferredMinHours() int {
+	return 2
+}
+
+func (t *TaskModel) IsPreferredDay(day string) bool {
+	days, _ := t.GetTaskTimePreferences()
+	if len(days) == 0 {
+		return true
+	} else {
+		for _, d := range days {
+			if strings.Title(strings.ToLower(d)) == day {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func (t *TaskModel) String() string {
+	data, _ := json.Marshal(t.Marshal())
+	return string(data)
+}
+
+func (t *TaskModel) AddProposal(proposal *ProposalModel) bool {
+	dbClient := lib.DbCtx
+	_, err := dbClient.Client.Task.UpdateOne(t.Task).
+		AddProposals(proposal.Proposal).
+		Save(dbClient.Context)
+
+	return err != nil
+}
+
+func (t *TaskModel) Name() string {
+	return t.Task.Name
+}
+
+func (t *TaskModel) UserUUID() string {
+	return t.Task.QueryUser().OnlyX(lib.DbCtx.Context).UUID.String()
+}
+
+func (t *TaskModel) HoursNeeded(currDate time.Time) float64 {
+	hoursLeft := t.HoursLeft(currDate)
+	daysLeft := t.PreferredDaysLeft(currDate)
+
+	if daysLeft <= 0 {
+		return 0 // check how long is remaining ig?
+	}
+
+	avg := hoursLeft / daysLeft
+
+	if t.IsPreferredDay(currDate.Weekday().String()) {
+		setMinimum := math.Max(float64(t.PreferredMinHours()), float64(avg))
+		capMaxmium := math.Min(setMinimum, float64(t.PreferredMaxHours()))
+		return capMaxmium
+	} else {
+		return 0
+	}
 }

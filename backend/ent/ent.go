@@ -8,6 +8,7 @@ import (
 	"backend/ent/hobby"
 	"backend/ent/meeting"
 	"backend/ent/preference"
+	"backend/ent/proposal"
 	"backend/ent/skill"
 	"backend/ent/task"
 	"backend/ent/timepreference"
@@ -86,6 +87,7 @@ func checkColumn(table, column string) error {
 			hobby.Table:          hobby.ValidColumn,
 			meeting.Table:        meeting.ValidColumn,
 			preference.Table:     preference.ValidColumn,
+			proposal.Table:       proposal.ValidColumn,
 			skill.Table:          skill.ValidColumn,
 			task.Table:           task.ValidColumn,
 			timepreference.Table: timepreference.ValidColumn,

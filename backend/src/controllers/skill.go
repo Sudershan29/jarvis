@@ -17,10 +17,11 @@ import (
 */
 
 type createSkillInput struct {
-	Name       string   `json:"name" binding:"required"`
-	Level      string   `json:"level"`
-	Duration   int      `json:"duration"`
-	Categories []string `json:"categories"`
+	Name           string   `json:"name" binding:"required"`
+	Level          string   `json:"level"`
+	Duration       int      `json:"duration"`
+	Categories     []string `json:"categories"`
+	TimePreference []string `json:"timepreference"`
 }
 
 func SkillCreate(c *gin.Context) {
@@ -29,7 +30,7 @@ func SkillCreate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	skill, err := models.SkillCreate(input.Name, input.Level, input.Duration, input.Categories, CurrentUser(c))
+	skill, err := models.SkillCreate(input.Name, input.Level, input.Duration, input.Categories, input.TimePreference, CurrentUser(c))
 	if err != nil {
 		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 		return
@@ -63,3 +64,31 @@ func SkillDelete(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 200, "message": "Skill deleted successfully"})
 }
+
+// func SkillUpdate(c *gin.Context) {
+// 	skillID, err := strconv.Atoi(c.Param("id"))
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid skill ID"})
+// 		return
+// 	}
+
+// 	var input createSkillInput
+// 	if err := c.ShouldBindJSON(&input); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 		return
+// 	}
+
+// 	// Check if any field is provided for update, if not return an error
+// 	if input.Name == "" && input.Level == "" && input.Duration == 0 && len(input.Categories) == 0 {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "No update parameters provided"})
+// 		return
+// 	}
+
+// 	skill, err := models.SkillUpdate(skillID, input.Name, input.Level, input.Duration, input.Categories, CurrentUser(c))
+// 	if err != nil {
+// 		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"code": 200, "skill": skill.Marshal()})
+// }

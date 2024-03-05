@@ -21,6 +21,9 @@ type Meeting func(*sql.Selector)
 // Preference is the predicate function for preference builders.
 type Preference func(*sql.Selector)
 
+// Proposal is the predicate function for proposal builders.
+type Proposal func(*sql.Selector)
+
 // Skill is the predicate function for skill builders.
 type Skill func(*sql.Selector)
 

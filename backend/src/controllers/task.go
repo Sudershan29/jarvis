@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"backend/src/helpers"
 	"backend/src/models"
 	"net/http"
 	"strconv"
@@ -32,7 +33,11 @@ func TaskCreate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	task, err := models.TaskCreate(input.Name, input.Description, input.Duration, time.Now(), // TODO: Change deadline
+	var deadline time.Time
+	if input.Deadline != "" {
+		deadline = helpers.ParseTimeWithZone(input.Deadline, "America/Chicago")
+	}
+	task, err := models.TaskCreate(input.Name, input.Description, input.Duration, deadline,
 		input.Categories, input.TimePreferences, CurrentUser(c))
 	if err != nil {
 		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})

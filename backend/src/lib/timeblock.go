@@ -10,6 +10,7 @@ type TimeBlock struct {
 	name               string    `json:"name"`
 	startTime, endTime time.Time `json:"start_time,omitempty","end_time,omitempty"`
 	internal           bool      `json:"internal, omit"` // Sleep, and breakfast timing do not have to be scheduled
+	id                 int64     `json:"id"`
 }
 
 type DayTimeBlock []*TimeBlock
@@ -39,8 +40,8 @@ func (day DayTimeBlock) MergeOverlaps() DayTimeBlock {
 	return mergedEvents
 }
 
-func NewTimeBlock(name string, startTime, endTime time.Time, internal bool) *TimeBlock {
-	return &TimeBlock{name, startTime, endTime, internal}
+func NewTimeBlock(name string, startTime, endTime time.Time, internal bool, id int64) *TimeBlock {
+	return &TimeBlock{name, startTime, endTime, internal, id}
 }
 
 func (t TimeBlock) String() string {

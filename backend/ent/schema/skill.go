@@ -20,8 +20,10 @@ func (Skill) Fields() []ent.Field {
 		field.String("level"),
 		field.Int("progress").
 			Default(0),
-		field.Int("duration"). // Duration in days
-					Default(0),
+		field.Int("duration").
+			Default(0),
+		field.Int("duration_achieved").
+			Default(0),
 		field.Time("created_at").
 			Default(time.Now),
 	}
@@ -41,5 +43,8 @@ func (Skill) Edges() []ent.Edge {
 		// M2M
 		edge.From("time_preferences", TimePreference.Type).
 			Ref("skills"),
+
+		// O2M
+		edge.To("proposals", Proposal.Type),
 	}
 }

@@ -22,6 +22,8 @@ type Tx struct {
 	Meeting *MeetingClient
 	// Preference is the client for interacting with the Preference builders.
 	Preference *PreferenceClient
+	// Proposal is the client for interacting with the Proposal builders.
+	Proposal *ProposalClient
 	// Skill is the client for interacting with the Skill builders.
 	Skill *SkillClient
 	// Task is the client for interacting with the Task builders.
@@ -166,6 +168,7 @@ func (tx *Tx) init() {
 	tx.Hobby = NewHobbyClient(tx.config)
 	tx.Meeting = NewMeetingClient(tx.config)
 	tx.Preference = NewPreferenceClient(tx.config)
+	tx.Proposal = NewProposalClient(tx.config)
 	tx.Skill = NewSkillClient(tx.config)
 	tx.Task = NewTaskClient(tx.config)
 	tx.TimePreference = NewTimePreferenceClient(tx.config)

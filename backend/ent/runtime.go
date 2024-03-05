@@ -7,6 +7,7 @@ import (
 	"backend/ent/hobby"
 	"backend/ent/meeting"
 	"backend/ent/preference"
+	"backend/ent/proposal"
 	"backend/ent/schema"
 	"backend/ent/skill"
 	"backend/ent/task"
@@ -52,6 +53,24 @@ func init() {
 	preferenceDescWeeklyFrequency := preferenceFields[1].Descriptor()
 	// preference.WeeklyFrequencyValidator is a validator for the "weekly_frequency" field. It is called by the builders before save.
 	preference.WeeklyFrequencyValidator = preferenceDescWeeklyFrequency.Validators[0].(func(int) error)
+	proposalFields := schema.Proposal{}.Fields()
+	_ = proposalFields
+	// proposalDescAllocatedDuration is the schema descriptor for allocated_duration field.
+	proposalDescAllocatedDuration := proposalFields[1].Descriptor()
+	// proposal.AllocatedDurationValidator is a validator for the "allocated_duration" field. It is called by the builders before save.
+	proposal.AllocatedDurationValidator = proposalDescAllocatedDuration.Validators[0].(func(int) error)
+	// proposalDescAchievedDuration is the schema descriptor for achieved_duration field.
+	proposalDescAchievedDuration := proposalFields[2].Descriptor()
+	// proposal.AchievedDurationValidator is a validator for the "achieved_duration" field. It is called by the builders before save.
+	proposal.AchievedDurationValidator = proposalDescAchievedDuration.Validators[0].(func(int) error)
+	// proposalDescCreatedAt is the schema descriptor for created_at field.
+	proposalDescCreatedAt := proposalFields[5].Descriptor()
+	// proposal.DefaultCreatedAt holds the default value on creation for the created_at field.
+	proposal.DefaultCreatedAt = proposalDescCreatedAt.Default.(func() time.Time)
+	// proposalDescUpdatedAt is the schema descriptor for updated_at field.
+	proposalDescUpdatedAt := proposalFields[6].Descriptor()
+	// proposal.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	proposal.DefaultUpdatedAt = proposalDescUpdatedAt.Default.(func() time.Time)
 	skillFields := schema.Skill{}.Fields()
 	_ = skillFields
 	// skillDescProgress is the schema descriptor for progress field.
@@ -62,8 +81,12 @@ func init() {
 	skillDescDuration := skillFields[3].Descriptor()
 	// skill.DefaultDuration holds the default value on creation for the duration field.
 	skill.DefaultDuration = skillDescDuration.Default.(int)
+	// skillDescDurationAchieved is the schema descriptor for duration_achieved field.
+	skillDescDurationAchieved := skillFields[4].Descriptor()
+	// skill.DefaultDurationAchieved holds the default value on creation for the duration_achieved field.
+	skill.DefaultDurationAchieved = skillDescDurationAchieved.Default.(int)
 	// skillDescCreatedAt is the schema descriptor for created_at field.
-	skillDescCreatedAt := skillFields[4].Descriptor()
+	skillDescCreatedAt := skillFields[5].Descriptor()
 	// skill.DefaultCreatedAt holds the default value on creation for the created_at field.
 	skill.DefaultCreatedAt = skillDescCreatedAt.Default.(func() time.Time)
 	taskFields := schema.Task{}.Fields()
@@ -72,8 +95,12 @@ func init() {
 	taskDescDuration := taskFields[2].Descriptor()
 	// task.DefaultDuration holds the default value on creation for the duration field.
 	task.DefaultDuration = taskDescDuration.Default.(int)
+	// taskDescDurationAchieved is the schema descriptor for duration_achieved field.
+	taskDescDurationAchieved := taskFields[3].Descriptor()
+	// task.DefaultDurationAchieved holds the default value on creation for the duration_achieved field.
+	task.DefaultDurationAchieved = taskDescDurationAchieved.Default.(int)
 	// taskDescCreatedAt is the schema descriptor for created_at field.
-	taskDescCreatedAt := taskFields[3].Descriptor()
+	taskDescCreatedAt := taskFields[4].Descriptor()
 	// task.DefaultCreatedAt holds the default value on creation for the created_at field.
 	task.DefaultCreatedAt = taskDescCreatedAt.Default.(func() time.Time)
 	userFields := schema.User{}.Fields()

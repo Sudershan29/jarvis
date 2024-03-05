@@ -68,6 +68,18 @@ func (f PreferenceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PreferenceMutation", m)
 }
 
+// The ProposalFunc type is an adapter to allow the use of ordinary
+// function as Proposal mutator.
+type ProposalFunc func(context.Context, *ent.ProposalMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProposalFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProposalMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProposalMutation", m)
+}
+
 // The SkillFunc type is an adapter to allow the use of ordinary
 // function as Skill mutator.
 type SkillFunc func(context.Context, *ent.SkillMutation) (ent.Value, error)

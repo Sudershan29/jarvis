@@ -132,7 +132,7 @@ func (client *GoogleCalendarClient) FetchEventsWithFilters(startDate, endDate st
 			}
 
 			result = append(result, NewTimeBlock(item.Summary, helpers.ConvertToTimezone(startTime, item.Start.TimeZone),
-				helpers.ConvertToTimezone(endTime, item.End.TimeZone), false))
+				helpers.ConvertToTimezone(endTime, item.End.TimeZone), false, helpers.CalendarIdToId(item.Id)))
 		}
 	}
 	return result, nil
@@ -153,7 +153,7 @@ func (client *GoogleCalendarClient) FetchEvents() (DayTimeBlock, error) {
 		for _, item := range events.Items {
 			startTime, _ := time.Parse(time.RFC3339, item.Start.DateTime)
 			endTime, _ := time.Parse(time.RFC3339, item.End.DateTime)
-			result = append(result, NewTimeBlock(item.Summary, helpers.ConvertToTimezone(startTime, "America/Chicago"), helpers.ConvertToTimezone(endTime, "America/Chicago"), true))
+			result = append(result, NewTimeBlock(item.Summary, helpers.ConvertToTimezone(startTime, "America/Chicago"), helpers.ConvertToTimezone(endTime, "America/Chicago"), true, helpers.CalendarIdToId(item.Id)))
 		}
 	}
 	return result, nil

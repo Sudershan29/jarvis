@@ -5,6 +5,7 @@ package ent
 import (
 	"backend/ent/category"
 	"backend/ent/predicate"
+	"backend/ent/proposal"
 	"backend/ent/task"
 	"backend/ent/timepreference"
 	"backend/ent/user"
@@ -28,6 +29,7 @@ type TaskQuery struct {
 	withCategories      *CategoryQuery
 	withUser            *UserQuery
 	withTimePreferences *TimePreferenceQuery
+	withProposals       *ProposalQuery
 	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -124,6 +126,28 @@ func (tq *TaskQuery) QueryTimePreferences() *TimePreferenceQuery {
 			sqlgraph.From(task.Table, task.FieldID, selector),
 			sqlgraph.To(timepreference.Table, timepreference.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, task.TimePreferencesTable, task.TimePreferencesPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProposals chains the current query on the "proposals" edge.
+func (tq *TaskQuery) QueryProposals() *ProposalQuery {
+	query := (&ProposalClient{config: tq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := tq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := tq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(task.Table, task.FieldID, selector),
+			sqlgraph.To(proposal.Table, proposal.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, task.ProposalsTable, task.ProposalsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
 		return fromU, nil
@@ -326,6 +350,7 @@ func (tq *TaskQuery) Clone() *TaskQuery {
 		withCategories:      tq.withCategories.Clone(),
 		withUser:            tq.withUser.Clone(),
 		withTimePreferences: tq.withTimePreferences.Clone(),
+		withProposals:       tq.withProposals.Clone(),
 		// clone intermediate query.
 		sql:  tq.sql.Clone(),
 		path: tq.path,
@@ -362,6 +387,17 @@ func (tq *TaskQuery) WithTimePreferences(opts ...func(*TimePreferenceQuery)) *Ta
 		opt(query)
 	}
 	tq.withTimePreferences = query
+	return tq
+}
+
+// WithProposals tells the query-builder to eager-load the nodes that are connected to
+// the "proposals" edge. The optional arguments are used to configure the query builder of the edge.
+func (tq *TaskQuery) WithProposals(opts ...func(*ProposalQuery)) *TaskQuery {
+	query := (&ProposalClient{config: tq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	tq.withProposals = query
 	return tq
 }
 
@@ -444,10 +480,11 @@ func (tq *TaskQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Task, e
 		nodes       = []*Task{}
 		withFKs     = tq.withFKs
 		_spec       = tq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			tq.withCategories != nil,
 			tq.withUser != nil,
 			tq.withTimePreferences != nil,
+			tq.withProposals != nil,
 		}
 	)
 	if tq.withUser != nil {
@@ -491,6 +528,13 @@ func (tq *TaskQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Task, e
 		if err := tq.loadTimePreferences(ctx, query, nodes,
 			func(n *Task) { n.Edges.TimePreferences = []*TimePreference{} },
 			func(n *Task, e *TimePreference) { n.Edges.TimePreferences = append(n.Edges.TimePreferences, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := tq.withProposals; query != nil {
+		if err := tq.loadProposals(ctx, query, nodes,
+			func(n *Task) { n.Edges.Proposals = []*Proposal{} },
+			func(n *Task, e *Proposal) { n.Edges.Proposals = append(n.Edges.Proposals, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -648,6 +692,37 @@ func (tq *TaskQuery) loadTimePreferences(ctx context.Context, query *TimePrefere
 		for kn := range nodes {
 			assign(kn, n)
 		}
+	}
+	return nil
+}
+func (tq *TaskQuery) loadProposals(ctx context.Context, query *ProposalQuery, nodes []*Task, init func(*Task), assign func(*Task, *Proposal)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Task)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Proposal(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(task.ProposalsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.task_proposals
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "task_proposals" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "task_proposals" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

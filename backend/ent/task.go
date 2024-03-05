@@ -24,6 +24,8 @@ type Task struct {
 	Description string `json:"description,omitempty"`
 	// Duration holds the value of the "duration" field.
 	Duration int `json:"duration,omitempty"`
+	// DurationAchieved holds the value of the "duration_achieved" field.
+	DurationAchieved int `json:"duration_achieved,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Deadline holds the value of the "deadline" field.
@@ -43,9 +45,11 @@ type TaskEdges struct {
 	User *User `json:"user,omitempty"`
 	// TimePreferences holds the value of the time_preferences edge.
 	TimePreferences []*TimePreference `json:"time_preferences,omitempty"`
+	// Proposals holds the value of the proposals edge.
+	Proposals []*Proposal `json:"proposals,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // CategoriesOrErr returns the Categories value or an error if the edge
@@ -79,12 +83,21 @@ func (e TaskEdges) TimePreferencesOrErr() ([]*TimePreference, error) {
 	return nil, &NotLoadedError{edge: "time_preferences"}
 }
 
+// ProposalsOrErr returns the Proposals value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaskEdges) ProposalsOrErr() ([]*Proposal, error) {
+	if e.loadedTypes[3] {
+		return e.Proposals, nil
+	}
+	return nil, &NotLoadedError{edge: "proposals"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Task) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case task.FieldID, task.FieldDuration:
+		case task.FieldID, task.FieldDuration, task.FieldDurationAchieved:
 			values[i] = new(sql.NullInt64)
 		case task.FieldName, task.FieldDescription:
 			values[i] = new(sql.NullString)
@@ -130,6 +143,12 @@ func (t *Task) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field duration", values[i])
 			} else if value.Valid {
 				t.Duration = int(value.Int64)
+			}
+		case task.FieldDurationAchieved:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field duration_achieved", values[i])
+			} else if value.Valid {
+				t.DurationAchieved = int(value.Int64)
 			}
 		case task.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -178,6 +197,11 @@ func (t *Task) QueryTimePreferences() *TimePreferenceQuery {
 	return NewTaskClient(t.config).QueryTimePreferences(t)
 }
 
+// QueryProposals queries the "proposals" edge of the Task entity.
+func (t *Task) QueryProposals() *ProposalQuery {
+	return NewTaskClient(t.config).QueryProposals(t)
+}
+
 // Update returns a builder for updating this Task.
 // Note that you need to call Task.Unwrap() before calling this method if this Task
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -209,6 +233,9 @@ func (t *Task) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("duration=")
 	builder.WriteString(fmt.Sprintf("%v", t.Duration))
+	builder.WriteString(", ")
+	builder.WriteString("duration_achieved=")
+	builder.WriteString(fmt.Sprintf("%v", t.DurationAchieved))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(t.CreatedAt.Format(time.ANSIC))

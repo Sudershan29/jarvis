@@ -75,6 +75,11 @@ func Duration(v int) predicate.Skill {
 	return predicate.Skill(sql.FieldEQ(FieldDuration, v))
 }
 
+// DurationAchieved applies equality check predicate on the "duration_achieved" field. It's identical to DurationAchievedEQ.
+func DurationAchieved(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldEQ(FieldDurationAchieved, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Skill {
 	return predicate.Skill(sql.FieldEQ(FieldCreatedAt, v))
@@ -290,6 +295,46 @@ func DurationLTE(v int) predicate.Skill {
 	return predicate.Skill(sql.FieldLTE(FieldDuration, v))
 }
 
+// DurationAchievedEQ applies the EQ predicate on the "duration_achieved" field.
+func DurationAchievedEQ(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldEQ(FieldDurationAchieved, v))
+}
+
+// DurationAchievedNEQ applies the NEQ predicate on the "duration_achieved" field.
+func DurationAchievedNEQ(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldNEQ(FieldDurationAchieved, v))
+}
+
+// DurationAchievedIn applies the In predicate on the "duration_achieved" field.
+func DurationAchievedIn(vs ...int) predicate.Skill {
+	return predicate.Skill(sql.FieldIn(FieldDurationAchieved, vs...))
+}
+
+// DurationAchievedNotIn applies the NotIn predicate on the "duration_achieved" field.
+func DurationAchievedNotIn(vs ...int) predicate.Skill {
+	return predicate.Skill(sql.FieldNotIn(FieldDurationAchieved, vs...))
+}
+
+// DurationAchievedGT applies the GT predicate on the "duration_achieved" field.
+func DurationAchievedGT(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldGT(FieldDurationAchieved, v))
+}
+
+// DurationAchievedGTE applies the GTE predicate on the "duration_achieved" field.
+func DurationAchievedGTE(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldGTE(FieldDurationAchieved, v))
+}
+
+// DurationAchievedLT applies the LT predicate on the "duration_achieved" field.
+func DurationAchievedLT(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldLT(FieldDurationAchieved, v))
+}
+
+// DurationAchievedLTE applies the LTE predicate on the "duration_achieved" field.
+func DurationAchievedLTE(v int) predicate.Skill {
+	return predicate.Skill(sql.FieldLTE(FieldDurationAchieved, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Skill {
 	return predicate.Skill(sql.FieldEQ(FieldCreatedAt, v))
@@ -391,6 +436,29 @@ func HasTimePreferences() predicate.Skill {
 func HasTimePreferencesWith(preds ...predicate.TimePreference) predicate.Skill {
 	return predicate.Skill(func(s *sql.Selector) {
 		step := newTimePreferencesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasProposals applies the HasEdge predicate on the "proposals" edge.
+func HasProposals() predicate.Skill {
+	return predicate.Skill(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ProposalsTable, ProposalsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProposalsWith applies the HasEdge predicate on the "proposals" edge with a given conditions (other predicates).
+func HasProposalsWith(preds ...predicate.Proposal) predicate.Skill {
+	return predicate.Skill(func(s *sql.Selector) {
+		step := newProposalsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

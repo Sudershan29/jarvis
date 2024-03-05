@@ -5,6 +5,8 @@ import (
 	"backend/src/helpers"
 	"backend/src/lib"
 	"backend/src/models"
+	"fmt"
+	"sort"
 	"time"
 )
 
@@ -20,26 +22,35 @@ This block will contain the logic behind the scheduling algorithm
 func PrepareTimeTable(userUUID string) {
 	timezone := "America/Chicago"
 	user, _ := models.UserFind(userUUID)
-	noOfDays := 1
-	tomorrow := time.Now().Add(24 * time.Hour)
+	noOfDays := 3
 	userTimezone, _ := time.LoadLocation(timezone)
+	tomorrow := time.Now().In(userTimezone).Add(24 * time.Hour)
 	startDate := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, userTimezone) // NOTE: Fix this later
 	// taskQueues := make([]DayTimeBlock, noOfDays)
 
+	allEvents := Accumulate(userUUID, startDate)
+
 	for day := 0; day < noOfDays; day++ {
 
-		calendarEvents, _ := user.CalendarEventsWithFilters(helpers.TimeFormatRFC3339(helpers.TimeToUTC(startDate)), helpers.TimeFormatRFC3339(helpers.TimeToUTC(startDate.Add(24*time.Hour))))
-		calendarEvents = append(calendarEvents, AddRoutine(timezone)...)
+		currentDate := startDate.AddDate(0, 0, day)
+
+		calendarEvents, _ := user.CalendarEventsWithFilters(helpers.TimeFormatRFC3339(helpers.TimeToUTC(currentDate)), helpers.TimeFormatRFC3339(helpers.TimeToUTC(currentDate.Add(24*time.Hour))))
+		calendarEvents = append(calendarEvents, AddRoutine(timezone, currentDate)...)
 		calendarEvents = calendarEvents.MergeOverlaps()
 
 		// You get the tasks as per priority, frequency and schedule them now ( depending on day )
 		var events models.CalendarEvent
 		// time.ParseDuration("2h")
-		events = append(events, models.NewEvent(userUUID, "Leetcode", 90*time.Minute))
-		events = append(events, models.NewEvent(userUUID, "Jobs", 60*time.Minute))
-		events = append(events, models.NewEvent(userUUID, "Grading", 180*time.Minute))
-		events = append(events, models.NewEvent(userUUID, "Energy Disclosure", 60*time.Minute))
-		events = append(events, models.NewEvent(userUUID, "Project", 120*time.Minute))
+
+		sort.Slice(allEvents, func(i, j int) bool {
+			return CompareEvents(allEvents[i], allEvents[j], currentDate)
+		})
+
+		// events = append(events, models.NewEvent(userUUID, "Leetcode", 90*time.Minute))
+		// events = append(events, models.NewEvent(userUUID, "Jobs", 60*time.Minute))
+		// events = append(events, models.NewEvent(userUUID, "Grading", 180*time.Minute))
+		// events = append(events, models.NewEvent(userUUID, "Energy Disclosure", 60*time.Minute))
+		// events = append(events, models.NewEvent(userUUID, "Project", 120*time.Minute))
 
 		breakDuration := 5 * time.Minute
 		breathingRoom := 15 * time.Minute
@@ -49,8 +60,15 @@ func PrepareTimeTable(userUUID string) {
 		// Naive implementation with good breathing room
 		nextStart := calendarEvents[0].EndTime()
 		idx := 1
-		for _, event := range events {
+		for _, eventWrapper := range allEvents {
+			event, err := models.NewEvent(eventWrapper, currentDate)
+
+			if err != nil {
+				continue
+			}
+
 			durationLeft := event.Length()
+
 			for durationLeft != 0 && idx < len(calendarEvents) {
 				if !calendarEvents[idx].OverlapInterval(nextStart, nextStart.Add(event.Length())) {
 					event.Schedule(nextStart, nextStart.Add(durationLeft)) // TODO: Add break every 30minutes/1hr
@@ -72,20 +90,23 @@ func PrepareTimeTable(userUUID string) {
 					idx += 1
 				}
 			}
+			events = append(events, event)
 		}
 
 		user.AddEvents(events)
+
+		fmt.Println(events)
 	}
 }
 
-func AddRoutine(timezone string) lib.DayTimeBlock {
+func AddRoutine(timezone string, currentDate time.Time) lib.DayTimeBlock {
 	var routine lib.DayTimeBlock
 	// These are routines
-	routine = append(routine, lib.NewTimeBlock("Sleep", helpers.ParseTimeWithZone("2024-02-17 00:00:00", timezone), helpers.ParseTimeWithZone("2024-02-17 08:00:00", timezone), true))
-	routine = append(routine, lib.NewTimeBlock("Breakfast", helpers.ParseTimeWithZone("2024-02-17 10:00:00", timezone), helpers.ParseTimeWithZone("2024-02-17 11:00:00", timezone), true))
-	routine = append(routine, lib.NewTimeBlock("Lunch", helpers.ParseTimeWithZone("2024-02-17 13:30:00", timezone), helpers.ParseTimeWithZone("2024-02-17 14:30:00", timezone), true))
-	routine = append(routine, lib.NewTimeBlock("Dinner", helpers.ParseTimeWithZone("2024-02-17 19:30:00", timezone), helpers.ParseTimeWithZone("2024-02-17 20:30:00", timezone), true))
-	routine = append(routine, lib.NewTimeBlock("Sleep", helpers.ParseTimeWithZone("2024-02-17 23:30:00", timezone), helpers.ParseTimeWithZone("2024-02-17 23:59:59", timezone), true))
+	routine = append(routine, lib.NewTimeBlock("Sleep", currentDate, currentDate.Add(8*time.Hour), true))
+	routine = append(routine, lib.NewTimeBlock("Breakfast", currentDate.Add(9*time.Hour), currentDate.Add(10*time.Hour), true))
+	routine = append(routine, lib.NewTimeBlock("Lunch", currentDate.Add(13*time.Hour+30*time.Minute), currentDate.Add(14*time.Hour+30*time.Minute), true))
+	routine = append(routine, lib.NewTimeBlock("Dinner", currentDate.Add(19*time.Hour+30*time.Minute), currentDate.Add(20*time.Hour+30*time.Minute), true))
+	routine = append(routine, lib.NewTimeBlock("Sleep", currentDate.Add(23*time.Hour+30*time.Minute), currentDate.Add(23*time.Hour+59*time.Minute), true))
 
 	return routine
 }

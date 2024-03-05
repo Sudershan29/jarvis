@@ -20,6 +20,8 @@ const (
 	FieldDescription = "description"
 	// FieldDuration holds the string denoting the duration field in the database.
 	FieldDuration = "duration"
+	// FieldDurationAchieved holds the string denoting the duration_achieved field in the database.
+	FieldDurationAchieved = "duration_achieved"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldDeadline holds the string denoting the deadline field in the database.
@@ -30,6 +32,8 @@ const (
 	EdgeUser = "user"
 	// EdgeTimePreferences holds the string denoting the time_preferences edge name in mutations.
 	EdgeTimePreferences = "time_preferences"
+	// EdgeProposals holds the string denoting the proposals edge name in mutations.
+	EdgeProposals = "proposals"
 	// Table holds the table name of the task in the database.
 	Table = "tasks"
 	// CategoriesTable is the table that holds the categories relation/edge. The primary key declared below.
@@ -49,6 +53,13 @@ const (
 	// TimePreferencesInverseTable is the table name for the TimePreference entity.
 	// It exists in this package in order to avoid circular dependency with the "timepreference" package.
 	TimePreferencesInverseTable = "time_preferences"
+	// ProposalsTable is the table that holds the proposals relation/edge.
+	ProposalsTable = "proposals"
+	// ProposalsInverseTable is the table name for the Proposal entity.
+	// It exists in this package in order to avoid circular dependency with the "proposal" package.
+	ProposalsInverseTable = "proposals"
+	// ProposalsColumn is the table column denoting the proposals relation/edge.
+	ProposalsColumn = "task_proposals"
 )
 
 // Columns holds all SQL columns for task fields.
@@ -57,6 +68,7 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldDuration,
+	FieldDurationAchieved,
 	FieldCreatedAt,
 	FieldDeadline,
 }
@@ -94,6 +106,8 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultDuration holds the default value on creation for the "duration" field.
 	DefaultDuration int
+	// DefaultDurationAchieved holds the default value on creation for the "duration_achieved" field.
+	DefaultDurationAchieved int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
@@ -119,6 +133,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByDuration orders the results by the duration field.
 func ByDuration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDuration, opts...).ToFunc()
+}
+
+// ByDurationAchieved orders the results by the duration_achieved field.
+func ByDurationAchieved(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDurationAchieved, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.
@@ -165,6 +184,20 @@ func ByTimePreferences(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTimePreferencesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByProposalsCount orders the results by proposals count.
+func ByProposalsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newProposalsStep(), opts...)
+	}
+}
+
+// ByProposals orders the results by proposals terms.
+func ByProposals(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProposalsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newCategoriesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -184,5 +217,12 @@ func newTimePreferencesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TimePreferencesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2M, true, TimePreferencesTable, TimePreferencesPrimaryKey...),
+	)
+}
+func newProposalsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProposalsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ProposalsTable, ProposalsColumn),
 	)
 }

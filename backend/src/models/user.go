@@ -129,7 +129,7 @@ func (u *UserModel) AddEvents(events []*Event) bool {
 	}
 
 	for _, event := range events {
-		for _, calEvent := range event.AsCalendarEvents() {
+		for _, calEvent := range event.Confirm() {
 			err := u.CalendarClient.AddEvent(calEvent) // TODO: Make sense of the error
 			if err != nil {
 				panic(err)

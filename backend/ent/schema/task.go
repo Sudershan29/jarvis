@@ -21,6 +21,8 @@ func (Task) Fields() []ent.Field {
 			Optional(),
 		field.Int("duration").
 			Default(0),
+		field.Int("duration_achieved").
+			Default(0),
 		field.Time("created_at").
 			Default(time.Now),
 		field.Time("deadline").
@@ -43,5 +45,8 @@ func (Task) Edges() []ent.Edge {
 		// M2M
 		edge.From("time_preferences", TimePreference.Type).
 			Ref("tasks"),
+
+		// O2M
+		edge.To("proposals", Proposal.Type),
 	}
 }
