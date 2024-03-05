@@ -1,7 +1,8 @@
 
 import React, { createContext, useState, useEffect } from 'react'
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { userLogin } from "../api/Login"
+import { userLogin, userGoogleLogin } from "../api/Login"
+import { showMessage, hideMessage } from "react-native-flash-message";
 
 export const AuthContext = createContext()
 
@@ -14,11 +15,36 @@ export const AuthProvider = ({children}) => {
     }, []);
 
     async function login (email, password) {
-        setIsLoading(true)
-        const token = await userLogin(email, password)
-        setUserToken(token)
-        AsyncStorage.setItem('@LoginStore:userToken', token)
+        // setIsLoading(true)
+        const response = await userLogin(email, password)
+        if (!response.success){
+            showMessage({
+                message: response.message,
+                type: "error",
+            })
+            // setIsLoading(false);
+            return;
+        }
+        setUserToken(response.token)
+        AsyncStorage.setItem('@LoginStore:userToken', response.token)
         setIsLoading(false)
+    }
+
+    async function loginGoogle () {
+        // setIsLoading(true)
+        const response = await userGoogleLogin()
+        if (!response.success){
+            setIsLoading(false);
+            showMessage({
+                message: response.message,
+                type: "error",
+            });
+            return;
+        }
+
+        setUserToken(response.token)
+        AsyncStorage.setItem('@LoginStore:userToken', token)
+        // setIsLoading(false)
     }
 
     function logout () {
@@ -44,7 +70,7 @@ export const AuthProvider = ({children}) => {
     }
 
     return (
-        <AuthContext.Provider value={{ userToken, isLoading, isLoggedIn, login, logout}}>
+        <AuthContext.Provider value={{ userToken, isLoading, isLoggedIn, login, logout, loginGoogle }}>
             {children}
         </AuthContext.Provider>
     )

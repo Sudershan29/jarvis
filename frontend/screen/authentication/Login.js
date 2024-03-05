@@ -6,8 +6,8 @@ import {
     TextInput,
     Button,
 } from "react-native";
-
-import { AuthContext } from "../context/AuthContext"
+import GoogleButton from 'react-google-button'
+import { AuthContext } from "../../context/AuthContext"
 
 /*
 
@@ -20,7 +20,7 @@ export default function LoginScreen({navigation}) {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
 
-    const { login } = useContext(AuthContext)
+    const { login, loginGoogle } = useContext(AuthContext)
 
     return (
         <View style={styles.container}>
@@ -45,6 +45,10 @@ export default function LoginScreen({navigation}) {
             <Button
                 title="Login"
                 onPress={() => login(email, password)}
+            />
+
+            <GoogleButton
+                onClick={() => loginGoogle()}
             />
         </View>
     )

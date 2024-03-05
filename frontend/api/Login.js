@@ -9,8 +9,17 @@ export async function userLogin(userEmail, password) {
             password: password
         });
 
-        return response.data.token
+        return { success: true, token: response.data.token }
     } catch (error) {
-        return {};
+        return { success: false, message: error.message }
+    }
+}
+
+export async function userGoogleLogin() {
+    try {
+        const response = await axios.get(`${BACKEND_URL}/google/signin`, { headers: {'Access-Control-Allow-Origin': '*'}});
+        return { success: true, token: response.data.token }
+    } catch (error) {
+        return { success: false, message: error.message }
     }
 }

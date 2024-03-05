@@ -5,11 +5,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import HomeScreen from "../screen/Home"
-import ProfileScreen  from "../screen/Profile"
-import SkillScreen from "../screen/Skill"
-import CalendarScreen from "../screen/Calendar"
-import CommunityScreen from "../screen/Community"
+import HomeScreen from "../screen/dashboard/Home"
+import ProfileScreen  from "../screen/dashboard/Profile"
+import CalendarScreen from "../screen/dashboard/Calendar"
+import CommunityScreen from "../screen/dashboard/Community"
+import { SkillStackScreen } from './SkillStack';
+import { TaskStackScreen } from './TaskStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -25,10 +26,10 @@ export const AppStack = () => {
                         iconName = focused ? 'person-circle' : 'person-circle-outline';
                     else if (route.name === 'Calendar')
                         iconName = focused ? 'calendar' : 'calendar-outline';
-                    else if (route.name === 'Skill')
+                    else if (route.name === 'SkillMain')
                         iconName = focused ? 'football' : 'football-outline';
-                    else if (route.name === 'Community')
-                        iconName = focused ? 'people' : 'people-outline';
+                    else if (route.name === 'TaskMain')
+                        iconName = focused ? 'clipboard' : 'clipboard-outline';
 
                     return <Ionicons name={iconName} size={size} color={color} />;
                 },
@@ -38,9 +39,9 @@ export const AppStack = () => {
                 <Tab.Screen name="Home" options={{ title: 'Welcome' }}>
                     {(props) => <HomeScreen {...props} />}
                 </Tab.Screen>
-                <Tab.Screen name="Skill" component={SkillScreen} />
+                <Tab.Screen name="SkillMain" component={SkillStackScreen} options={{ headerShown: false }} />
                 <Tab.Screen name="Calendar" component={CalendarScreen} />
-                <Tab.Screen name="Community" component={CommunityScreen} />
+                <Tab.Screen name="TaskMain" component={TaskStackScreen} options={{ headerShown: false }} />
                 <Tab.Screen name="Profile" component={ProfileScreen} />
             </Tab.Navigator>
     )

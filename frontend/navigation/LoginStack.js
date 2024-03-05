@@ -3,8 +3,8 @@ import React from 'react'
 
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import LoginScreen from '../screen/Login';
-import LoginResetScreen from '../screen/LoginReset';
+import LoginScreen from '../screen/authentication/Login';
+import LoginResetScreen from '../screen/authentication/LoginReset';
 
 const Stack = createNativeStackNavigator();
 
