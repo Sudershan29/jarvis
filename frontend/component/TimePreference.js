@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 
 const daysOfTheWeek = [
-    { name: 'Sun', value: 0, fullName: 'Sunday'},
+    { name: 'Sun', value: 0, fullName: 'sunday'},
     { name: 'Mon', value: 1, fullName: 'monday'},
     { name: 'Tue', value: 2, fullName: 'tuesday'},
     { name: 'Wed', value: 3, fullName: 'wednesday'},

@@ -39,12 +39,15 @@ export default function Skill({ name, duration, scheduled, deadline, timeprefere
 const styles = StyleSheet.create({
     pastDeadline: {
         backgroundColor: '#FADBD8', // Pale red
+        borderRadius: 10,
     },
     scheduled: {
         backgroundColor: '#D5F5E3', // Pale green
+        borderRadius: 10,
     },
     default: {
         backgroundColor: '#D6EAF8', // Pale blue
+        borderRadius: 10,
     },
     title: {
         color: '#34495E', // Dark blue

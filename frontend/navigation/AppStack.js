@@ -36,12 +36,10 @@ export const AppStack = () => {
                 tabBarActiveTintColor: 'black',
                 tabBarInactiveTintColor: 'gray',
             })}>
-                <Tab.Screen name="Home" options={{ title: 'Welcome' }}>
-                    {(props) => <HomeScreen {...props} />}
-                </Tab.Screen>
-                <Tab.Screen name="SkillMain" component={SkillStackScreen} options={{ headerShown: false }} />
+                <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Welcome' }} />
+                <Tab.Screen name="TaskMain" component={TaskStackScreen} options={{ headerShown: false, title: 'Tasks' }} />
                 <Tab.Screen name="Calendar" component={CalendarScreen} />
-                <Tab.Screen name="TaskMain" component={TaskStackScreen} options={{ headerShown: false }} />
+                <Tab.Screen name="SkillMain" component={SkillStackScreen} options={{ headerShown: false, title: 'Skills' }} />
                 <Tab.Screen name="Profile" component={ProfileScreen} />
             </Tab.Navigator>
     )

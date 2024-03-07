@@ -3,6 +3,7 @@
 docker compose build
 
 docker volume create peachtree-database-data
+docker volume create jarvis-redis-data
 
 # Creating database
 docker compose up database -d
