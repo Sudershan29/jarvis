@@ -41,6 +41,8 @@ type User struct {
 type UserEdges struct {
 	// Skills holds the value of the skills edge.
 	Skills []*Skill `json:"skills,omitempty"`
+	// Calendars holds the value of the calendars edge.
+	Calendars []*Calendar `json:"calendars,omitempty"`
 	// Tasks holds the value of the tasks edge.
 	Tasks []*Task `json:"tasks,omitempty"`
 	// Meetings holds the value of the meetings edge.
@@ -55,7 +57,7 @@ type UserEdges struct {
 	Preference *Preference `json:"preference,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [8]bool
 }
 
 // SkillsOrErr returns the Skills value or an error if the edge
@@ -67,10 +69,19 @@ func (e UserEdges) SkillsOrErr() ([]*Skill, error) {
 	return nil, &NotLoadedError{edge: "skills"}
 }
 
+// CalendarsOrErr returns the Calendars value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) CalendarsOrErr() ([]*Calendar, error) {
+	if e.loadedTypes[1] {
+		return e.Calendars, nil
+	}
+	return nil, &NotLoadedError{edge: "calendars"}
+}
+
 // TasksOrErr returns the Tasks value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) TasksOrErr() ([]*Task, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.Tasks, nil
 	}
 	return nil, &NotLoadedError{edge: "tasks"}
@@ -79,7 +90,7 @@ func (e UserEdges) TasksOrErr() ([]*Task, error) {
 // MeetingsOrErr returns the Meetings value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) MeetingsOrErr() ([]*Meeting, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.Meetings, nil
 	}
 	return nil, &NotLoadedError{edge: "meetings"}
@@ -88,7 +99,7 @@ func (e UserEdges) MeetingsOrErr() ([]*Meeting, error) {
 // HobbiesOrErr returns the Hobbies value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) HobbiesOrErr() ([]*Hobby, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.Hobbies, nil
 	}
 	return nil, &NotLoadedError{edge: "hobbies"}
@@ -97,7 +108,7 @@ func (e UserEdges) HobbiesOrErr() ([]*Hobby, error) {
 // GoalsOrErr returns the Goals value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) GoalsOrErr() ([]*Goal, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.Goals, nil
 	}
 	return nil, &NotLoadedError{edge: "goals"}
@@ -106,7 +117,7 @@ func (e UserEdges) GoalsOrErr() ([]*Goal, error) {
 // CategoriesOrErr returns the Categories value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) CategoriesOrErr() ([]*Category, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.Categories, nil
 	}
 	return nil, &NotLoadedError{edge: "categories"}
@@ -115,7 +126,7 @@ func (e UserEdges) CategoriesOrErr() ([]*Category, error) {
 // PreferenceOrErr returns the Preference value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e UserEdges) PreferenceOrErr() (*Preference, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		if e.Preference == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: preference.Label}
@@ -213,6 +224,11 @@ func (u *User) Value(name string) (ent.Value, error) {
 // QuerySkills queries the "skills" edge of the User entity.
 func (u *User) QuerySkills() *SkillQuery {
 	return NewUserClient(u.config).QuerySkills(u)
+}
+
+// QueryCalendars queries the "calendars" edge of the User entity.
+func (u *User) QueryCalendars() *CalendarQuery {
+	return NewUserClient(u.config).QueryCalendars(u)
 }
 
 // QueryTasks queries the "tasks" edge of the User entity.

@@ -52,7 +52,7 @@ func TaskAll(c *gin.Context) {
 		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 		return
 	}
-	var result []models.TaskJSON
+	result := make([]models.TaskJSON, 0)
 	for _, task := range tasks {
 		result = append(result, task.Marshal())
 	}

@@ -12,7 +12,7 @@ export default function ProgressBar({ title, progress, subProgresses = [] }) {
                 </View>
             </View>
             {subProgresses.map((sub, index) => (
-                <ProgressBarMini name={sub.name} value={sub.value} index={index} />
+                <ProgressBarMini key={index} name={sub.name} value={sub.value} index={index} />
             ))}
         </View>
     );

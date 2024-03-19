@@ -18,9 +18,10 @@ export default function SkillScreen() {
     React.useEffect(() => {
         getSkills(userToken)
             .then(res => {
-                if (res.success)
-                    setSkillsData(res.skills);
-                else {
+                if (res.success){
+                    if(res.skills?.length > 0)
+                        setSkillsData(res.skills)
+                }else {
                     showMessage({
                         message: res.message,
                         type: "error",

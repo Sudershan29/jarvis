@@ -91,7 +91,7 @@ func NewCalendarClient(userSlug string) (*GoogleCalendarClient, error) {
 	return &GoogleCalendarClient{ctx, srv}, nil
 }
 
-func (client *GoogleCalendarClient) ListCalendars() ([]string, error) {
+func (client *GoogleCalendarClient) ListInternalCalendars() ([]string, error) {
 	// List calendars
 	calendarList, err := client.Calendar.CalendarList.List().Do()
 	if err != nil {
@@ -113,7 +113,7 @@ func (client *GoogleCalendarClient) AddEvent(eventData *calendar.Event) error {
 }
 
 func (client *GoogleCalendarClient) FetchEventsWithFilters(startDate, endDate string) (DayTimeBlock, error) {
-	var result DayTimeBlock
+	result := make(DayTimeBlock, 0)
 	events, err := client.Calendar.Events.List("primary").ShowDeleted(false).
 		SingleEvents(true).TimeMin(startDate).TimeMax(endDate).OrderBy("startTime").Do()
 
@@ -139,7 +139,7 @@ func (client *GoogleCalendarClient) FetchEventsWithFilters(startDate, endDate st
 }
 
 func (client *GoogleCalendarClient) FetchEvents() (DayTimeBlock, error) {
-	var result DayTimeBlock
+	result := make(DayTimeBlock, 0)
 	t := time.Now().Format(time.RFC3339)
 	events, err := client.Calendar.Events.List("primary").ShowDeleted(false).
 		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()

@@ -44,7 +44,7 @@ func SkillAll(c *gin.Context) {
 		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 		return
 	}
-	var result []models.SkillJSON
+	result := make([]models.SkillJSON, 0)
 	for _, skill := range skills {
 		result = append(result, skill.Marshal())
 	}

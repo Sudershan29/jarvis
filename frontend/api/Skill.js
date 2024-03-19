@@ -4,7 +4,7 @@ import { BACKEND_URL } from "react-native-dotenv"
 
 export async function getSkills(token) {
     try {
-        const response = await axios.get(`${BACKEND_URL}/skills`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const response = await axios.get(`${process.env.EXPO_PUBLIC_BACKEND_URL}/skills`, { headers: { 'Authorization': `Bearer ${token}`, "ngrok-skip-browser-warning": "69420" } });
         if (response.status === 200) {
             return { success: true, skills: response.data.skills }
         }
@@ -16,7 +16,7 @@ export async function getSkills(token) {
 
 export async function createSkill(token, skill) {
     try {
-        const response = await axios.post(`${BACKEND_URL}/skills`, skill, { headers: { 'Authorization': `Bearer ${token}` } });
+        const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/skills`, skill, { headers: { 'Authorization': `Bearer ${token}`, "ngrok-skip-browser-warning": "69420" } });
         if (response.status === 200) {
             return { success: true, message: response.data.message }
         }

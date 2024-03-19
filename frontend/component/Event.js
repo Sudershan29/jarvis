@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from 'react-native';
 import EventGroup from "./EventGroup";
 
-const Event = ({ events, heading }) => {
+const Event = ({ events, heading, isDate }) => {
     const groupEvents = () => {
         const grouped = [];
         let lastEvent = null;
@@ -28,15 +28,20 @@ const Event = ({ events, heading }) => {
 
         return eventGroups.map((group, index) => {
             return (
-                <EventGroup group={group} index={index}/>
+                <EventGroup key={index} group={group} index={index}/>
             );
         });
     };
 
     return (
         <View style={styles.container}>
-            <Text style={{fontWeight: 'bold', fontSize: 20}} >{heading}</Text>
-            {renderEventGroups()}
+                {!isDate && <Text style={{fontWeight: 'bold', fontSize: 20}} >{heading}</Text>}
+                {isDate && <Text style={{fontWeight: 'bold', fontSize: 20}} >{heading?.day}, {heading?.date + " " + heading?.month}</Text>}
+                {events.length === 0 ?
+                    <View style={{ alignItems: 'center' }}>
+                        <Text style={{padding: 20}}>No upcoming events for today</Text> 
+                    </View> 
+                    : renderEventGroups()}
         </View>
     );
 };

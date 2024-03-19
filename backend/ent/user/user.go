@@ -29,6 +29,8 @@ const (
 	FieldPremium = "premium"
 	// EdgeSkills holds the string denoting the skills edge name in mutations.
 	EdgeSkills = "skills"
+	// EdgeCalendars holds the string denoting the calendars edge name in mutations.
+	EdgeCalendars = "calendars"
 	// EdgeTasks holds the string denoting the tasks edge name in mutations.
 	EdgeTasks = "tasks"
 	// EdgeMeetings holds the string denoting the meetings edge name in mutations.
@@ -50,6 +52,13 @@ const (
 	SkillsInverseTable = "skills"
 	// SkillsColumn is the table column denoting the skills relation/edge.
 	SkillsColumn = "user_skills"
+	// CalendarsTable is the table that holds the calendars relation/edge.
+	CalendarsTable = "calendars"
+	// CalendarsInverseTable is the table name for the Calendar entity.
+	// It exists in this package in order to avoid circular dependency with the "calendar" package.
+	CalendarsInverseTable = "calendars"
+	// CalendarsColumn is the table column denoting the calendars relation/edge.
+	CalendarsColumn = "user_calendars"
 	// TasksTable is the table that holds the tasks relation/edge.
 	TasksTable = "tasks"
 	// TasksInverseTable is the table name for the Task entity.
@@ -176,6 +185,20 @@ func BySkills(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByCalendarsCount orders the results by calendars count.
+func ByCalendarsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCalendarsStep(), opts...)
+	}
+}
+
+// ByCalendars orders the results by calendars terms.
+func ByCalendars(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCalendarsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByTasksCount orders the results by tasks count.
 func ByTasksCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -257,6 +280,13 @@ func newSkillsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SkillsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SkillsTable, SkillsColumn),
+	)
+}
+func newCalendarsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CalendarsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CalendarsTable, CalendarsColumn),
 	)
 }
 func newTasksStep() *sqlgraph.Step {

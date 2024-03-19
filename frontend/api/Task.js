@@ -1,10 +1,9 @@
 
 import axios from 'axios';
-import { BACKEND_URL } from "react-native-dotenv"
 
 export async function getTasks(token) {
     try {
-        const response = await axios.get(`${BACKEND_URL}/tasks`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const response = await axios.get(`${process.env.EXPO_PUBLIC_BACKEND_URL}/tasks`, { headers: { 'Authorization': `Bearer ${token}`, "ngrok-skip-browser-warning": "69420" } });
         if (response.status === 200) {
             return { success: true, tasks: response.data.tasks }
         }

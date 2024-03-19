@@ -1,8 +1,11 @@
 package helpers
 
 import (
+	"log"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 const prepend = "jarvisproposal"
@@ -29,4 +32,12 @@ func CalendarIdToId(idStr string) int64 {
 		return -1 // -1 represents default
 	}
 	return id
+}
+
+// LoadEnv loads the environment variables from the .env file
+func LoadEnv() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
 }

@@ -1,16 +1,16 @@
 package lib
 
 import (
-	"fmt"
 	"sort"
 	"time"
 )
 
 type TimeBlock struct {
-	name               string    `json:"name"`
-	startTime, endTime time.Time `json:"start_time,omitempty","end_time,omitempty"`
-	internal           bool      `json:"internal, omit"` // Sleep, and breakfast timing do not have to be scheduled
-	id                 int64     `json:"id"`
+	Name      string    `json:"name"`
+	StartTime time.Time `json:"startTime"`
+	EndTime   time.Time `json:"endTime"`
+	Internal  bool      `json:"internal"` // Sleep, and breakfast timing do not have to be scheduled
+	Id        int64     `json:"id"`
 }
 
 type DayTimeBlock []*TimeBlock
@@ -30,7 +30,7 @@ func (day DayTimeBlock) MergeOverlaps() DayTimeBlock {
 		previous := mergedEvents[0]
 
 		for i := 1; i < day.Len(); i++ {
-			if !previous.Merge(*day[i]) { // If you can merge events on overlap, then merge, else make it current
+			if !previous.Merge(day[i]) { // If you can merge events on overlap, then merge, else make it current
 				mergedEvents = append(mergedEvents, day[i])
 				previous = day[i]
 			}
@@ -44,52 +44,44 @@ func NewTimeBlock(name string, startTime, endTime time.Time, internal bool, id i
 	return &TimeBlock{name, startTime, endTime, internal, id}
 }
 
-func (t TimeBlock) String() string {
-	startTimeStr := t.startTime.Format("15:04")
-	endTimeStr := t.endTime.Format("15:04")
+// func (t TimeBlock) String() string {
+// 	startTimeStr := t.startTime.Format("15:04")
+// 	endTimeStr := t.endTime.Format("15:04")
 
-	return fmt.Sprintf("%s (%s - %s)", t.name, startTimeStr, endTimeStr)
-}
+// 	return fmt.Sprintf("%s (%s - %s)", t.name, startTimeStr, endTimeStr)
+// }
 
 func (t1 *TimeBlock) Less(t2 *TimeBlock) bool {
-	if t1.startTime.Before(t2.startTime) {
+	if t1.StartTime.Before(t2.StartTime) {
 		return true
-	} else if t1.startTime.Equal(t2.startTime) {
-		return t1.endTime.Before(t2.endTime)
+	} else if t1.StartTime.Equal(t2.StartTime) {
+		return t1.EndTime.Before(t2.EndTime)
 	}
 	return false
 }
 
-func (t1 *TimeBlock) Merge(t2 TimeBlock) bool {
+func (t1 *TimeBlock) Merge(t2 *TimeBlock) bool {
 	// Check for overlap before merging
 	if !t1.Overlaps(t2) {
 		return false // Don't merge if there's no overlap
 	}
 
-	t1.name += ", " + t2.name // Combine names with a comma separator
-	t1.startTime = minTime(t1.startTime, t2.startTime)
-	t1.endTime = maxTime(t1.endTime, t2.endTime)
+	t1.Name += ", " + t2.Name // Combine names with a comma separator
+	t1.StartTime = minTime(t1.StartTime, t2.StartTime)
+	t1.EndTime = maxTime(t1.EndTime, t2.EndTime)
 	return true
 }
 
-func (t1 *TimeBlock) Overlaps(t2 TimeBlock) bool {
-	return t1.OverlapInterval(t2.startTime, t2.endTime)
+func (t1 *TimeBlock) Overlaps(t2 *TimeBlock) bool {
+	return t1.OverlapInterval(t2.StartTime, t2.EndTime)
 }
 
 func (t1 *TimeBlock) OverlapInterval(start, end time.Time) bool {
-	if t1.startTime.After(start) {
-		return t1.startTime.Before(end)
+	if t1.StartTime.After(start) {
+		return t1.StartTime.Before(end)
 	} else {
-		return t1.endTime.After(start)
+		return t1.EndTime.After(start)
 	}
-}
-
-func (t1 TimeBlock) StartTime() time.Time {
-	return t1.startTime
-}
-
-func (t1 TimeBlock) EndTime() time.Time {
-	return t1.endTime
 }
 
 // Helper functions for clarity and potential reusability

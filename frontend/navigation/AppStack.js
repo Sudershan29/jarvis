@@ -6,11 +6,12 @@ import { NavigationContainer } from '@react-navigation/native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import HomeScreen from "../screen/dashboard/Home"
-import ProfileScreen  from "../screen/dashboard/Profile"
 import CalendarScreen from "../screen/dashboard/Calendar"
 import CommunityScreen from "../screen/dashboard/Community"
 import { SkillStackScreen } from './SkillStack';
 import { TaskStackScreen } from './TaskStack';
+import { ProfileStackScreen } from './ProfileStack';
+import GoogleCalendarConnect from '../screen/authentication/GoogleCalendarConnect';
 
 const Tab = createBottomTabNavigator();
 
@@ -22,7 +23,7 @@ export const AppStack = () => {
 
                     if (route.name === 'Home')
                         iconName = focused ? 'home' : 'home-outline';
-                    else if (route.name === 'Profile')
+                    else if (route.name === 'ProfileMain')
                         iconName = focused ? 'person-circle' : 'person-circle-outline';
                     else if (route.name === 'Calendar')
                         iconName = focused ? 'calendar' : 'calendar-outline';
@@ -40,7 +41,8 @@ export const AppStack = () => {
                 <Tab.Screen name="TaskMain" component={TaskStackScreen} options={{ headerShown: false, title: 'Tasks' }} />
                 <Tab.Screen name="Calendar" component={CalendarScreen} />
                 <Tab.Screen name="SkillMain" component={SkillStackScreen} options={{ headerShown: false, title: 'Skills' }} />
-                <Tab.Screen name="Profile" component={ProfileScreen} />
+                <Tab.Screen name="ProfileMain" component={ProfileStackScreen} options={{ headerShown: false, title: 'Profile' }} />
+                <Tab.Screen name="GoogleCalendarConnect" component={GoogleCalendarConnect} options={{ tabBarButton: () => null }} />
             </Tab.Navigator>
     )
 }

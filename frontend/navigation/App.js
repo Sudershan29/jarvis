@@ -9,6 +9,23 @@ import FlashMessage from "react-native-flash-message";
 import { AppStack } from './AppStack';
 import { LoginStack } from "./LoginStack"
 
+const config = {
+    screens: {
+        ProfileMain: {
+            screens: {
+                GoogleCalendarConnect: 'GoogleCalendarConnect',
+                Profile: 'Profile',
+            },
+        },
+        GoogleLoginSuccess: 'googleLoginSuccess',
+        CalendarDone: 'CalendarDone'
+    },
+};
+
+const linking = {
+    config,
+};
+
 export const AppNavigation = () => {
     const { isLoggedIn, isLoading } = useContext(AuthContext)
 
@@ -16,7 +33,7 @@ export const AppNavigation = () => {
         return (<ActivityIndicator/>)
 
     return(
-        <NavigationContainer>
+        <NavigationContainer linking={linking} fallback={<Text>Loading...</Text>}>
             <View style={{ flex: 1 }}>
                 { isLoggedIn() ? <AppStack /> : <LoginStack/> }
                 <FlashMessage position="top" />

@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"backend/ent/calendar"
 	"backend/ent/category"
 	"backend/ent/goal"
 	"backend/ent/hobby"
@@ -82,6 +83,7 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			calendar.Table:       calendar.ValidColumn,
 			category.Table:       category.ValidColumn,
 			goal.Table:           goal.ValidColumn,
 			hobby.Table:          hobby.ValidColumn,

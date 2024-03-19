@@ -1,10 +1,27 @@
-import React from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Button, View, ScrollView, Text, StyleSheet, } from 'react-native';
 import ProgressBar from "../../component/ProgressBar";
 import Event from "../../component/Event";
 import Icon from "../../component/Icon";
+import { getEvents } from "../../api/Calendar";
+import { AuthContext } from "../../context/AuthContext";
 
 export default function HomeScreen () {
+
+    const { userToken } = useContext(AuthContext)
+
+    const [upcomingEvents, setUpcomingEvents] = useState([])
+
+    useEffect(() => {
+        const fetchData = async () => {
+            const now = new Date().toISOString();
+            const events = await getEvents(userToken, now);
+            setUpcomingEvents(events);
+        };
+
+        fetchData();
+    }, []);
+
     return (
         <View style={styles.container}>
             <View style={{flex: 2}}>
@@ -24,8 +41,7 @@ export default function HomeScreen () {
 
             <View style={{ flex: 6}}>
                 <Event heading={"Upcoming Events"} 
-                    events={[{ name: "Fake Event", isCancelled: true, startTime: "2023-03-08T11:30:00", endTime: "2023-03-08T12:30:00" },
-                    { name: "Badminton", isCancelled: false, startTime: "2023-03-08T18:30:00", endTime: "2023-03-08T20:30:00" }]}
+                    events={upcomingEvents}
                 />
             </View>
         </View>

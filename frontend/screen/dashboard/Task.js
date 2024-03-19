@@ -18,7 +18,9 @@ export default function TaskScreen() {
         getTasks(userToken)
             .then(res => { 
                 if(res.success)
-                    setTasksData(res.tasks)
+                    if (res.tasks?.length > 0){
+                        setTasksData(res.tasks)
+                    }
                 else{
                     showMessage({
                         message: res.message,

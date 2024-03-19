@@ -8,6 +8,29 @@ import (
 )
 
 var (
+	// CalendarsColumns holds the columns for the "calendars" table.
+	CalendarsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "type", Type: field.TypeString},
+		{Name: "token", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_calendars", Type: field.TypeInt, Nullable: true},
+	}
+	// CalendarsTable holds the schema information for the "calendars" table.
+	CalendarsTable = &schema.Table{
+		Name:       "calendars",
+		Columns:    CalendarsColumns,
+		PrimaryKey: []*schema.Column{CalendarsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "calendars_users_calendars",
+				Columns:    []*schema.Column{CalendarsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// CategoriesColumns holds the columns for the "categories" table.
 	CategoriesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -388,6 +411,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		CalendarsTable,
 		CategoriesTable,
 		GoalsTable,
 		HobbiesTable,
@@ -408,6 +432,7 @@ var (
 )
 
 func init() {
+	CalendarsTable.ForeignKeys[0].RefTable = UsersTable
 	CategoriesTable.ForeignKeys[0].RefTable = UsersTable
 	GoalsTable.ForeignKeys[0].RefTable = UsersTable
 	HobbiesTable.ForeignKeys[0].RefTable = UsersTable

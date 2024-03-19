@@ -10,6 +10,7 @@ import (
 
 	"backend/ent/migrate"
 
+	"backend/ent/calendar"
 	"backend/ent/category"
 	"backend/ent/goal"
 	"backend/ent/hobby"
@@ -32,6 +33,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Calendar is the client for interacting with the Calendar builders.
+	Calendar *CalendarClient
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
 	// Goal is the client for interacting with the Goal builders.
@@ -65,6 +68,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Calendar = NewCalendarClient(c.config)
 	c.Category = NewCategoryClient(c.config)
 	c.Goal = NewGoalClient(c.config)
 	c.Hobby = NewHobbyClient(c.config)
@@ -157,6 +161,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:            ctx,
 		config:         cfg,
+		Calendar:       NewCalendarClient(cfg),
 		Category:       NewCategoryClient(cfg),
 		Goal:           NewGoalClient(cfg),
 		Hobby:          NewHobbyClient(cfg),
@@ -186,6 +191,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:            ctx,
 		config:         cfg,
+		Calendar:       NewCalendarClient(cfg),
 		Category:       NewCategoryClient(cfg),
 		Goal:           NewGoalClient(cfg),
 		Hobby:          NewHobbyClient(cfg),
@@ -202,7 +208,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Category.
+//		Calendar.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -225,8 +231,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Proposal, c.Skill,
-		c.Task, c.TimePreference, c.User,
+		c.Calendar, c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Proposal,
+		c.Skill, c.Task, c.TimePreference, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -236,8 +242,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Proposal, c.Skill,
-		c.Task, c.TimePreference, c.User,
+		c.Calendar, c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Proposal,
+		c.Skill, c.Task, c.TimePreference, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -246,6 +252,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *CalendarMutation:
+		return c.Calendar.mutate(ctx, m)
 	case *CategoryMutation:
 		return c.Category.mutate(ctx, m)
 	case *GoalMutation:
@@ -268,6 +276,140 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.User.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// CalendarClient is a client for the Calendar schema.
+type CalendarClient struct {
+	config
+}
+
+// NewCalendarClient returns a client for the Calendar from the given config.
+func NewCalendarClient(c config) *CalendarClient {
+	return &CalendarClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `calendar.Hooks(f(g(h())))`.
+func (c *CalendarClient) Use(hooks ...Hook) {
+	c.hooks.Calendar = append(c.hooks.Calendar, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `calendar.Intercept(f(g(h())))`.
+func (c *CalendarClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Calendar = append(c.inters.Calendar, interceptors...)
+}
+
+// Create returns a builder for creating a Calendar entity.
+func (c *CalendarClient) Create() *CalendarCreate {
+	mutation := newCalendarMutation(c.config, OpCreate)
+	return &CalendarCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Calendar entities.
+func (c *CalendarClient) CreateBulk(builders ...*CalendarCreate) *CalendarCreateBulk {
+	return &CalendarCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Calendar.
+func (c *CalendarClient) Update() *CalendarUpdate {
+	mutation := newCalendarMutation(c.config, OpUpdate)
+	return &CalendarUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CalendarClient) UpdateOne(ca *Calendar) *CalendarUpdateOne {
+	mutation := newCalendarMutation(c.config, OpUpdateOne, withCalendar(ca))
+	return &CalendarUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CalendarClient) UpdateOneID(id int) *CalendarUpdateOne {
+	mutation := newCalendarMutation(c.config, OpUpdateOne, withCalendarID(id))
+	return &CalendarUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Calendar.
+func (c *CalendarClient) Delete() *CalendarDelete {
+	mutation := newCalendarMutation(c.config, OpDelete)
+	return &CalendarDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CalendarClient) DeleteOne(ca *Calendar) *CalendarDeleteOne {
+	return c.DeleteOneID(ca.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CalendarClient) DeleteOneID(id int) *CalendarDeleteOne {
+	builder := c.Delete().Where(calendar.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CalendarDeleteOne{builder}
+}
+
+// Query returns a query builder for Calendar.
+func (c *CalendarClient) Query() *CalendarQuery {
+	return &CalendarQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCalendar},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Calendar entity by its id.
+func (c *CalendarClient) Get(ctx context.Context, id int) (*Calendar, error) {
+	return c.Query().Where(calendar.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CalendarClient) GetX(ctx context.Context, id int) *Calendar {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Calendar.
+func (c *CalendarClient) QueryUser(ca *Calendar) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ca.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(calendar.Table, calendar.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, calendar.UserTable, calendar.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CalendarClient) Hooks() []Hook {
+	return c.hooks.Calendar
+}
+
+// Interceptors returns the client interceptors.
+func (c *CalendarClient) Interceptors() []Interceptor {
+	return c.inters.Calendar
+}
+
+func (c *CalendarClient) mutate(ctx context.Context, m *CalendarMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CalendarCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CalendarUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CalendarUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CalendarDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Calendar mutation op: %q", m.Op())
 	}
 }
 
@@ -1810,6 +1952,22 @@ func (c *UserClient) QuerySkills(u *User) *SkillQuery {
 	return query
 }
 
+// QueryCalendars queries the calendars edge of a User.
+func (c *UserClient) QueryCalendars(u *User) *CalendarQuery {
+	query := (&CalendarClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(calendar.Table, calendar.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.CalendarsTable, user.CalendarsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryTasks queries the tasks edge of a User.
 func (c *UserClient) QueryTasks(u *User) *TaskQuery {
 	query := (&TaskClient{config: c.config}).Query()
@@ -1934,11 +2092,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Category, Goal, Hobby, Meeting, Preference, Proposal, Skill, Task,
+		Calendar, Category, Goal, Hobby, Meeting, Preference, Proposal, Skill, Task,
 		TimePreference, User []ent.Hook
 	}
 	inters struct {
-		Category, Goal, Hobby, Meeting, Preference, Proposal, Skill, Task,
+		Calendar, Category, Goal, Hobby, Meeting, Preference, Proposal, Skill, Task,
 		TimePreference, User []ent.Interceptor
 	}
 )

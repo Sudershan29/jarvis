@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"backend/ent/calendar"
 	"backend/ent/category"
 	"backend/ent/goal"
 	"backend/ent/hobby"
@@ -101,6 +102,21 @@ func (uc *UserCreate) AddSkills(s ...*Skill) *UserCreate {
 		ids[i] = s[i].ID
 	}
 	return uc.AddSkillIDs(ids...)
+}
+
+// AddCalendarIDs adds the "calendars" edge to the Calendar entity by IDs.
+func (uc *UserCreate) AddCalendarIDs(ids ...int) *UserCreate {
+	uc.mutation.AddCalendarIDs(ids...)
+	return uc
+}
+
+// AddCalendars adds the "calendars" edges to the Calendar entity.
+func (uc *UserCreate) AddCalendars(c ...*Calendar) *UserCreate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uc.AddCalendarIDs(ids...)
 }
 
 // AddTaskIDs adds the "tasks" edge to the Task entity by IDs.
@@ -325,6 +341,22 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.CalendarsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarsTable,
+			Columns: []string{user.CalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

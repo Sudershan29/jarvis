@@ -9,6 +9,7 @@ export const AuthContext = createContext()
 export const AuthProvider = ({children}) => {
     const [isLoading, setIsLoading] = useState(false)
     const [userToken, setUserToken] = useState(null)
+    const [connectedToCalendar, setConnectedToCalendar] = useState(false)
 
     useEffect(() => {
         checkLoginStatus()
@@ -27,6 +28,13 @@ export const AuthProvider = ({children}) => {
         }
         setUserToken(response.token)
         AsyncStorage.setItem('@LoginStore:userToken', response.token)
+        setIsLoading(false)
+    }
+
+    async function loginGoogleSuccess (token) {
+        setIsLoading(true)
+        setUserToken(token)
+        AsyncStorage.setItem('@LoginStore:userToken', token)
         setIsLoading(false)
     }
 
@@ -65,12 +73,17 @@ export const AuthProvider = ({children}) => {
         }
     }
 
+    function calendarConnectSuccess(whatTodoAfter){
+        setConnectedToCalendar(true)
+        whatTodoAfter()
+    }
+
     function isLoggedIn() {
         return userToken !== null
     }
 
     return (
-        <AuthContext.Provider value={{ userToken, isLoading, isLoggedIn, login, logout, loginGoogle }}>
+        <AuthContext.Provider value={{ userToken, isLoading, connectedToCalendar, isLoggedIn, login, logout, loginGoogle, loginGoogleSuccess, calendarConnectSuccess }}>
             {children}
         </AuthContext.Provider>
     )

@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"backend/ent/calendar"
 	"backend/ent/goal"
 	"backend/ent/hobby"
 	"backend/ent/meeting"
@@ -21,6 +22,12 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	calendarFields := schema.Calendar{}.Fields()
+	_ = calendarFields
+	// calendarDescCreatedAt is the schema descriptor for created_at field.
+	calendarDescCreatedAt := calendarFields[3].Descriptor()
+	// calendar.DefaultCreatedAt holds the default value on creation for the created_at field.
+	calendar.DefaultCreatedAt = calendarDescCreatedAt.Default.(func() time.Time)
 	goalFields := schema.Goal{}.Fields()
 	_ = goalFields
 	// goalDescCreatedAt is the schema descriptor for created_at field.

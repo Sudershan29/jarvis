@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"backend/src/helpers"
 	"backend/src/lib"
 	"backend/src/models"
 	"fmt"
@@ -140,15 +141,19 @@ func AuthenticateGoogleCallback(c *gin.Context) {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"code": 200, "user": googleUserJSON, "token": token})
+		// c.JSON(http.StatusOK, gin.H{"code": 200, "user": googleUserJSON, "token": token})
+		c.Redirect(http.StatusFound, helpers.GetEnv("FRONTEND_URL")+"/googleLoginSuccess/?token="+token)
 	} else {
 		/*
 			Google Calendar Callback
 
 			NOTES: Add calendars to database, and enable different views for different accounts | Research how to identify which email id? Maybe add it to Calendar State
 		*/
-		status := lib.SaveCalendarToken(calendarState, c.Query("code"))
-		c.JSON(http.StatusOK, gin.H{"code": 200, "user": calendarState.UserSlug, "saved": status})
+
+		lib.SaveCalendarToken(calendarState, c.Query("code"))
+		models.CalendarFindOrCreate("Google Calendar", "google", c.Query("code"), models.NewJwtUser(calendarState.UserSlug))
+		// c.JSON(http.StatusOK, gin.H{"code": 200, "user": calendarState.UserSlug, "saved": status})
+		c.Redirect(http.StatusFound, helpers.GetEnv("FRONTEND_URL")+"/Profile")
 	}
 }
 

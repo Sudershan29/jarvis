@@ -92,7 +92,7 @@ func UserFind(key string) (*UserModel, error) {
 }
 
 func (u *UserModel) CalendarEventsWithFilters(startDate, endDate string) (lib.DayTimeBlock, error) {
-	var calendarEvents lib.DayTimeBlock
+	calendarEvents := make(lib.DayTimeBlock, 0)
 
 	if !u.LoadCalendarClient() {
 		return calendarEvents, errors.New("Cannot load Calendar Client")
@@ -105,7 +105,7 @@ func (u *UserModel) CalendarEventsWithFilters(startDate, endDate string) (lib.Da
 
 // Returns user events that are already in the calendar
 func (u *UserModel) CalendarEvents() (lib.DayTimeBlock, error) {
-	var calendarEvents lib.DayTimeBlock
+	calendarEvents := make(lib.DayTimeBlock, 0)
 
 	if !u.LoadCalendarClient() {
 		return calendarEvents, errors.New("Cannot load Calendar Client")
@@ -120,7 +120,15 @@ func (u *UserModel) Calendars() ([]string, error) {
 		return make([]string, 0), errors.New("Cannot load Calendar Client")
 	}
 
-	return u.CalendarClient.ListCalendars()
+	return u.CalendarClient.ListInternalCalendars()
+}
+
+func (u *UserModel) ListCalendars() ([]*CalendarModel, error) {
+	if !u.LoadCalendarClient() {
+		return make([]*CalendarModel, 0), errors.New("Cannot load Calendar Client")
+	}
+
+	return CalendarShowAll(NewJwtUser(u.User.UUID.String()))
 }
 
 func (u *UserModel) AddEvents(events []*Event) bool {

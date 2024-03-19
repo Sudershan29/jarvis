@@ -1,20 +1,32 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Button, View, Text, StyleSheet, ScrollView } from 'react-native';
 import DatePill from "../../component/DatePill";
 import Event from '../../component/Event';
+import { AuthContext } from "../../context/AuthContext";
+import { getEvents } from "../../api/Calendar";
 
 export default function CalendarScreen() {
+
+    const { userToken } = useContext(AuthContext);
     const [currentDateRange, setCurrentDateRange] = useState([]);
     const [activeDateIndex, setActiveDateIndex] = useState(0);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [currEvents, setCurrEvents] = useState([]);
 
     useEffect(() => {
         generateDateRange(0);
     }, []);
 
     useEffect(() => {
+        const fetchData = async () => {
+            const dayAfterCurrentDate = new Date(currentDate);
+            dayAfterCurrentDate.setDate(dayAfterCurrentDate.getDate() + 1); // Add 24 hours to the current date
+            const events = await getEvents(userToken, currentDate.toISOString(), dayAfterCurrentDate.toISOString());
+            setCurrEvents(events);
+        };
 
-    }, [currentDate]);
+        fetchData();
+    }, [activeDateIndex]);
 
     // Make an API call based on currentDate
 
@@ -26,6 +38,7 @@ export default function CalendarScreen() {
             let date = new Date(today);
             date.setDate(date.getDate() + i);
             dates.push({
+                dateObj: date,
                 date: date.getDate(),
                 day: date.toLocaleString('en-us', { weekday: 'short' }),
                 month: date.toLocaleString('en-us', { month: 'short' }),
@@ -36,7 +49,7 @@ export default function CalendarScreen() {
     };
 
     const changeActiveDate = (index) => {
-        setCurrentDate(currentDateRange[index].date);
+        setCurrentDate(currentDateRange[index].dateObj);
         setActiveDateIndex(index);
     };
 
@@ -58,12 +71,14 @@ export default function CalendarScreen() {
             </ScrollView>
             <View style={styles.eventContainer}>
                 <Event 
-                    heading={"Today"} // TODO: Change based on date
-                    events={[{ name: "Breakfast", isCancelled: false, startTime: "2023-03-08T08:00:00", endTime: "2023-03-08T09:00:00"}, 
-                     { name: "Robert <> Sudershan", isCancelled: false, startTime: "2023-03-08T09:00:00", endTime: "2023-03-08T10:00:00", isGoogleCalendarEvent: true },
-                     { name: "Fake Event", isCancelled: true, startTime: "2023-03-08T11:30:00", endTime: "2023-03-08T12:30:00" },
-                     { name: "Badminton", isCancelled: false, startTime: "2023-03-08T18:30:00", endTime: "2023-03-08T20:30:00" }]
-                }/>
+                    heading={currentDate === new Date().getDate() ? "Today" : currentDateRange[activeDateIndex]}
+                    isDate={currentDate !== new Date().getDate()}
+                    events={currEvents}
+                    // events={[{ name: "Breakfast", isCancelled: false, startTime: "2023-03-08T08:00:00", endTime: "2023-03-08T09:00:00"}, 
+                    //  { name: "Robert <> Sudershan", isCancelled: false, startTime: "2023-03-08T09:00:00", endTime: "2023-03-08T10:00:00", isGoogleCalendarEvent: true },
+                    //  { name: "Fake Event", isCancelled: true, startTime: "2023-03-08T11:30:00", endTime: "2023-03-08T12:30:00" },
+                    //  { name: "Badminton", isCancelled: false, startTime: "2023-03-08T18:30:00", endTime: "2023-03-08T20:30:00" }]}
+                />
             </View>
         </View>
     )

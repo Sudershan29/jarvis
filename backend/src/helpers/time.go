@@ -87,3 +87,13 @@ func NumberOfPreferredDaysBetween(currDate, nextDate time.Time, preferredDays []
 
 	return NumberOfDaysLeftThisWeek(currDate, preferredDays) + len(preferredDays)*weeks
 }
+
+func ConvertISOStringToTime(isoString string, timezone string) (time.Time, error) {
+	ctLoc, _ := time.LoadLocation(timezone)
+
+	ctTime, err := time.ParseInLocation(time.RFC3339, isoString, ctLoc)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return ctTime, nil
+}

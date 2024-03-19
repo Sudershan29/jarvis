@@ -1,16 +1,17 @@
 package controllers
 
 import (
+	"backend/src/lib"
+	"backend/src/middleware"
+	"backend/src/models"
 	"log"
 	"net/http"
-	"backend/src/lib"
-	"backend/src/models"
-	"backend/src/middleware"
-  	"github.com/gin-gonic/gin"
+
+	"github.com/gin-gonic/gin"
 )
 
 func CurrentUser(c *gin.Context) *models.JwtUser {
-	token 	:= middleware.ExtractToken(c)
+	token := middleware.ExtractToken(c)
 	user_id := lib.GetUser(token)
 	return models.NewJwtUser(user_id)
 }
@@ -30,39 +31,20 @@ func UserProfile(c *gin.Context) {
 }
 
 /*
-	Get your calendar information
-*/
-
-func UserCalendar(c *gin.Context) {
-	user 	  := CurrentUser(c)
-	// code, err := lib.GetSavedCalendarToken(user.UserId.String())
-	userCalendarClient, err := lib.NewCalendarClient(user.UserId.String())
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return;
-	}
-
-	calendarEvents, err := userCalendarClient.FetchEvents()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return;
-	}
-
-	c.JSON(http.StatusOK, gin.H{"code": 200, "events": calendarEvents })
-}
-
-/*
 	Connect with your Google Calendar
 */
 
 func UserCalendarConnect(c *gin.Context) {
-	user := CurrentUser(c)
+	token := c.Query("token")
+	user_id := lib.GetUser(token)
+	user := models.NewJwtUser(user_id)
+
 	redirectUrl, err := lib.GenerateGCalendarAuthorizationLink(user.UserId.String())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return;
+		return
 	}
+
 	log.Println("Redirecting to ", redirectUrl)
 	c.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }
