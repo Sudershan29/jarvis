@@ -4,7 +4,9 @@ package ent
 
 import (
 	"backend/ent/category"
+	"backend/ent/proposal"
 	"backend/ent/skill"
+	"backend/ent/timepreference"
 	"backend/ent/user"
 	"context"
 	"errors"
@@ -62,6 +64,20 @@ func (sc *SkillCreate) SetNillableDuration(i *int) *SkillCreate {
 	return sc
 }
 
+// SetDurationAchieved sets the "duration_achieved" field.
+func (sc *SkillCreate) SetDurationAchieved(i int) *SkillCreate {
+	sc.mutation.SetDurationAchieved(i)
+	return sc
+}
+
+// SetNillableDurationAchieved sets the "duration_achieved" field if the given value is not nil.
+func (sc *SkillCreate) SetNillableDurationAchieved(i *int) *SkillCreate {
+	if i != nil {
+		sc.SetDurationAchieved(*i)
+	}
+	return sc
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (sc *SkillCreate) SetCreatedAt(t time.Time) *SkillCreate {
 	sc.mutation.SetCreatedAt(t)
@@ -110,6 +126,36 @@ func (sc *SkillCreate) SetUser(u *User) *SkillCreate {
 	return sc.SetUserID(u.ID)
 }
 
+// AddTimePreferenceIDs adds the "time_preferences" edge to the TimePreference entity by IDs.
+func (sc *SkillCreate) AddTimePreferenceIDs(ids ...int) *SkillCreate {
+	sc.mutation.AddTimePreferenceIDs(ids...)
+	return sc
+}
+
+// AddTimePreferences adds the "time_preferences" edges to the TimePreference entity.
+func (sc *SkillCreate) AddTimePreferences(t ...*TimePreference) *SkillCreate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return sc.AddTimePreferenceIDs(ids...)
+}
+
+// AddProposalIDs adds the "proposals" edge to the Proposal entity by IDs.
+func (sc *SkillCreate) AddProposalIDs(ids ...int) *SkillCreate {
+	sc.mutation.AddProposalIDs(ids...)
+	return sc
+}
+
+// AddProposals adds the "proposals" edges to the Proposal entity.
+func (sc *SkillCreate) AddProposals(p ...*Proposal) *SkillCreate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return sc.AddProposalIDs(ids...)
+}
+
 // Mutation returns the SkillMutation object of the builder.
 func (sc *SkillCreate) Mutation() *SkillMutation {
 	return sc.mutation
@@ -153,6 +199,10 @@ func (sc *SkillCreate) defaults() {
 		v := skill.DefaultDuration
 		sc.mutation.SetDuration(v)
 	}
+	if _, ok := sc.mutation.DurationAchieved(); !ok {
+		v := skill.DefaultDurationAchieved
+		sc.mutation.SetDurationAchieved(v)
+	}
 	if _, ok := sc.mutation.CreatedAt(); !ok {
 		v := skill.DefaultCreatedAt()
 		sc.mutation.SetCreatedAt(v)
@@ -172,6 +222,9 @@ func (sc *SkillCreate) check() error {
 	}
 	if _, ok := sc.mutation.Duration(); !ok {
 		return &ValidationError{Name: "duration", err: errors.New(`ent: missing required field "Skill.duration"`)}
+	}
+	if _, ok := sc.mutation.DurationAchieved(); !ok {
+		return &ValidationError{Name: "duration_achieved", err: errors.New(`ent: missing required field "Skill.duration_achieved"`)}
 	}
 	if _, ok := sc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Skill.created_at"`)}
@@ -218,6 +271,10 @@ func (sc *SkillCreate) createSpec() (*Skill, *sqlgraph.CreateSpec) {
 		_spec.SetField(skill.FieldDuration, field.TypeInt, value)
 		_node.Duration = value
 	}
+	if value, ok := sc.mutation.DurationAchieved(); ok {
+		_spec.SetField(skill.FieldDurationAchieved, field.TypeInt, value)
+		_node.DurationAchieved = value
+	}
 	if value, ok := sc.mutation.CreatedAt(); ok {
 		_spec.SetField(skill.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -253,6 +310,38 @@ func (sc *SkillCreate) createSpec() (*Skill, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.user_skills = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sc.mutation.TimePreferencesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   skill.TimePreferencesTable,
+			Columns: skill.TimePreferencesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(timepreference.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sc.mutation.ProposalsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   skill.ProposalsTable,
+			Columns: []string{skill.ProposalsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(proposal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

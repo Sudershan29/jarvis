@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"backend/ent/calendar"
 	"backend/ent/category"
 	"backend/ent/goal"
 	"backend/ent/hobby"
@@ -39,6 +40,20 @@ func (uu *UserUpdate) Where(ps ...predicate.User) *UserUpdate {
 // SetName sets the "name" field.
 func (uu *UserUpdate) SetName(s string) *UserUpdate {
 	uu.mutation.SetName(s)
+	return uu
+}
+
+// SetTimezone sets the "timezone" field.
+func (uu *UserUpdate) SetTimezone(s string) *UserUpdate {
+	uu.mutation.SetTimezone(s)
+	return uu
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableTimezone(s *string) *UserUpdate {
+	if s != nil {
+		uu.SetTimezone(*s)
+	}
 	return uu
 }
 
@@ -109,6 +124,21 @@ func (uu *UserUpdate) AddSkills(s ...*Skill) *UserUpdate {
 		ids[i] = s[i].ID
 	}
 	return uu.AddSkillIDs(ids...)
+}
+
+// AddCalendarIDs adds the "calendars" edge to the Calendar entity by IDs.
+func (uu *UserUpdate) AddCalendarIDs(ids ...int) *UserUpdate {
+	uu.mutation.AddCalendarIDs(ids...)
+	return uu
+}
+
+// AddCalendars adds the "calendars" edges to the Calendar entity.
+func (uu *UserUpdate) AddCalendars(c ...*Calendar) *UserUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.AddCalendarIDs(ids...)
 }
 
 // AddTaskIDs adds the "tasks" edge to the Task entity by IDs.
@@ -229,6 +259,27 @@ func (uu *UserUpdate) RemoveSkills(s ...*Skill) *UserUpdate {
 		ids[i] = s[i].ID
 	}
 	return uu.RemoveSkillIDs(ids...)
+}
+
+// ClearCalendars clears all "calendars" edges to the Calendar entity.
+func (uu *UserUpdate) ClearCalendars() *UserUpdate {
+	uu.mutation.ClearCalendars()
+	return uu
+}
+
+// RemoveCalendarIDs removes the "calendars" edge to Calendar entities by IDs.
+func (uu *UserUpdate) RemoveCalendarIDs(ids ...int) *UserUpdate {
+	uu.mutation.RemoveCalendarIDs(ids...)
+	return uu
+}
+
+// RemoveCalendars removes "calendars" edges to Calendar entities.
+func (uu *UserUpdate) RemoveCalendars(c ...*Calendar) *UserUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.RemoveCalendarIDs(ids...)
 }
 
 // ClearTasks clears all "tasks" edges to the Task entity.
@@ -381,6 +432,9 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := uu.mutation.Name(); ok {
 		_spec.SetField(user.FieldName, field.TypeString, value)
 	}
+	if value, ok := uu.mutation.Timezone(); ok {
+		_spec.SetField(user.FieldTimezone, field.TypeString, value)
+	}
 	if value, ok := uu.mutation.EmailAddress(); ok {
 		_spec.SetField(user.FieldEmailAddress, field.TypeString, value)
 	}
@@ -434,6 +488,51 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.CalendarsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarsTable,
+			Columns: []string{user.CalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedCalendarsIDs(); len(nodes) > 0 && !uu.mutation.CalendarsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarsTable,
+			Columns: []string{user.CalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.CalendarsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarsTable,
+			Columns: []string{user.CalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -721,6 +820,20 @@ func (uuo *UserUpdateOne) SetName(s string) *UserUpdateOne {
 	return uuo
 }
 
+// SetTimezone sets the "timezone" field.
+func (uuo *UserUpdateOne) SetTimezone(s string) *UserUpdateOne {
+	uuo.mutation.SetTimezone(s)
+	return uuo
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableTimezone(s *string) *UserUpdateOne {
+	if s != nil {
+		uuo.SetTimezone(*s)
+	}
+	return uuo
+}
+
 // SetEmailAddress sets the "email_address" field.
 func (uuo *UserUpdateOne) SetEmailAddress(s string) *UserUpdateOne {
 	uuo.mutation.SetEmailAddress(s)
@@ -788,6 +901,21 @@ func (uuo *UserUpdateOne) AddSkills(s ...*Skill) *UserUpdateOne {
 		ids[i] = s[i].ID
 	}
 	return uuo.AddSkillIDs(ids...)
+}
+
+// AddCalendarIDs adds the "calendars" edge to the Calendar entity by IDs.
+func (uuo *UserUpdateOne) AddCalendarIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.AddCalendarIDs(ids...)
+	return uuo
+}
+
+// AddCalendars adds the "calendars" edges to the Calendar entity.
+func (uuo *UserUpdateOne) AddCalendars(c ...*Calendar) *UserUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.AddCalendarIDs(ids...)
 }
 
 // AddTaskIDs adds the "tasks" edge to the Task entity by IDs.
@@ -908,6 +1036,27 @@ func (uuo *UserUpdateOne) RemoveSkills(s ...*Skill) *UserUpdateOne {
 		ids[i] = s[i].ID
 	}
 	return uuo.RemoveSkillIDs(ids...)
+}
+
+// ClearCalendars clears all "calendars" edges to the Calendar entity.
+func (uuo *UserUpdateOne) ClearCalendars() *UserUpdateOne {
+	uuo.mutation.ClearCalendars()
+	return uuo
+}
+
+// RemoveCalendarIDs removes the "calendars" edge to Calendar entities by IDs.
+func (uuo *UserUpdateOne) RemoveCalendarIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.RemoveCalendarIDs(ids...)
+	return uuo
+}
+
+// RemoveCalendars removes "calendars" edges to Calendar entities.
+func (uuo *UserUpdateOne) RemoveCalendars(c ...*Calendar) *UserUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.RemoveCalendarIDs(ids...)
 }
 
 // ClearTasks clears all "tasks" edges to the Task entity.
@@ -1090,6 +1239,9 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	if value, ok := uuo.mutation.Name(); ok {
 		_spec.SetField(user.FieldName, field.TypeString, value)
 	}
+	if value, ok := uuo.mutation.Timezone(); ok {
+		_spec.SetField(user.FieldTimezone, field.TypeString, value)
+	}
 	if value, ok := uuo.mutation.EmailAddress(); ok {
 		_spec.SetField(user.FieldEmailAddress, field.TypeString, value)
 	}
@@ -1143,6 +1295,51 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(skill.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.CalendarsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarsTable,
+			Columns: []string{user.CalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedCalendarsIDs(); len(nodes) > 0 && !uuo.mutation.CalendarsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarsTable,
+			Columns: []string{user.CalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.CalendarsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CalendarsTable,
+			Columns: []string{user.CalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

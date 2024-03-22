@@ -6,21 +6,57 @@ import {
     TextInput,
     Button,
 } from "react-native";
-
-import { AuthContext } from "../context/AuthContext"
-
+// import GoogleButton from 'react-google-button'
+import { AuthContext } from "../../context/AuthContext"
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri, useAuthRequest, ResponseType } from 'expo-auth-session';
+import { GoogleLoginURL, GoogleCallbackURL }  from "../../api/Login"
 /*
 
 TODO: Add Input validation
 TODO: Figure out how to give error popups
 
 */
+// WebBrowser.maybeCompleteAuthSession({
+//     showInRecents: true,
+// });
+
+// Endpoint
+// const discovery = {
+//     authorizationEndpoint: GoogleLoginURL(),
+// };
 
 export default function LoginScreen({navigation}) {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
 
     const { login } = useContext(AuthContext)
+
+    // const [request, response, promptAsync] = useAuthRequest(
+    //     {
+    //         responseType: ResponseType.Token,
+    //         clientId: 'CLIENT_ID',
+    //         scopes: [],
+    //         redirectUri: makeRedirectUri({
+    //             // Ensure the scheme matches your expo application scheme
+    //             scheme: 'your.app',
+    //             useProxy: true,
+    //         }),
+    //     },
+    //     discovery
+    // );
+
+    // React.useEffect(() => {
+    //     if (response && response.type === 'success') {
+    //         console.log(response)
+    //         const token = response.params.access_token;
+    //         // Handle the successful authentication here
+    //     }
+    // }, [response]);
+
+    function NavigateToLogin(){
+        window.location.href = GoogleLoginURL();
+    }
 
     return (
         <View style={styles.container}>
@@ -46,6 +82,9 @@ export default function LoginScreen({navigation}) {
                 title="Login"
                 onPress={() => login(email, password)}
             />
+
+            <Button onPress={NavigateToLogin} title="Login with Google" />  
+
         </View>
     )
 }

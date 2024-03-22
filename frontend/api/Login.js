@@ -1,16 +1,32 @@
 
 import axios from 'axios';
-import { BACKEND_URL } from "react-native-dotenv"
 
 export async function userLogin(userEmail, password) {
     try {
-        const response = await axios.post(`${BACKEND_URL}/login`, {
+        const response = await axios.post(`${process.env.EXPO_PUBLIC_BACKEND_URL}/login`, {
             email: userEmail,
             password: password
+        }, {
+            "ngrok-skip-browser-warning": "69420"
         });
 
-        return response.data.token
+        return { success: true, token: response.data.token }
     } catch (error) {
-        return {};
+        return { success: false, message: error.message }
     }
 }
+
+export async function userGoogleLogin() {
+    try {
+        const response = await axios.get(`${process.env.EXPO_PUBLIC_BACKEND_URL}/google/signin`, {
+            "ngrok-skip-browser-warning": "69420"
+        });
+        return { success: true, token: response.data.token }
+    } catch (error) {
+        return { success: false, message: error.message }
+    }
+}
+
+export const GoogleLoginURL = () => `${process.env.EXPO_PUBLIC_BACKEND_URL}/google/signin`
+
+export const GoogleCallbackURL = () => `${process.env.EXPO_PUBLIC_BACKEND_URL}/google/callback`

@@ -1,9 +1,8 @@
-
 package category_test
 
 import (
 	"testing"
-	"backend/src/lib"
+	// "backend/src/lib"
 	"backend/src/models"
 	"backend/tests/mocks"
 )
@@ -17,6 +16,6 @@ func TestCategoryCreate(t *testing.T) {
 	_, err := models.CategoryCreate("testing")
 
 	if err != nil {
-        t.Errorf("Cannot create category %s", err.Error())
-    }
+		t.Errorf("Cannot create category %s", err.Error())
+	}
 }

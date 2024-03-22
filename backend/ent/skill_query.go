@@ -5,7 +5,9 @@ package ent
 import (
 	"backend/ent/category"
 	"backend/ent/predicate"
+	"backend/ent/proposal"
 	"backend/ent/skill"
+	"backend/ent/timepreference"
 	"backend/ent/user"
 	"context"
 	"database/sql/driver"
@@ -20,13 +22,15 @@ import (
 // SkillQuery is the builder for querying Skill entities.
 type SkillQuery struct {
 	config
-	ctx            *QueryContext
-	order          []skill.OrderOption
-	inters         []Interceptor
-	predicates     []predicate.Skill
-	withCategories *CategoryQuery
-	withUser       *UserQuery
-	withFKs        bool
+	ctx                 *QueryContext
+	order               []skill.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.Skill
+	withCategories      *CategoryQuery
+	withUser            *UserQuery
+	withTimePreferences *TimePreferenceQuery
+	withProposals       *ProposalQuery
+	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -100,6 +104,50 @@ func (sq *SkillQuery) QueryUser() *UserQuery {
 			sqlgraph.From(skill.Table, skill.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, skill.UserTable, skill.UserColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTimePreferences chains the current query on the "time_preferences" edge.
+func (sq *SkillQuery) QueryTimePreferences() *TimePreferenceQuery {
+	query := (&TimePreferenceClient{config: sq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(skill.Table, skill.FieldID, selector),
+			sqlgraph.To(timepreference.Table, timepreference.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, skill.TimePreferencesTable, skill.TimePreferencesPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProposals chains the current query on the "proposals" edge.
+func (sq *SkillQuery) QueryProposals() *ProposalQuery {
+	query := (&ProposalClient{config: sq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(skill.Table, skill.FieldID, selector),
+			sqlgraph.To(proposal.Table, proposal.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, skill.ProposalsTable, skill.ProposalsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
 		return fromU, nil
@@ -294,13 +342,15 @@ func (sq *SkillQuery) Clone() *SkillQuery {
 		return nil
 	}
 	return &SkillQuery{
-		config:         sq.config,
-		ctx:            sq.ctx.Clone(),
-		order:          append([]skill.OrderOption{}, sq.order...),
-		inters:         append([]Interceptor{}, sq.inters...),
-		predicates:     append([]predicate.Skill{}, sq.predicates...),
-		withCategories: sq.withCategories.Clone(),
-		withUser:       sq.withUser.Clone(),
+		config:              sq.config,
+		ctx:                 sq.ctx.Clone(),
+		order:               append([]skill.OrderOption{}, sq.order...),
+		inters:              append([]Interceptor{}, sq.inters...),
+		predicates:          append([]predicate.Skill{}, sq.predicates...),
+		withCategories:      sq.withCategories.Clone(),
+		withUser:            sq.withUser.Clone(),
+		withTimePreferences: sq.withTimePreferences.Clone(),
+		withProposals:       sq.withProposals.Clone(),
 		// clone intermediate query.
 		sql:  sq.sql.Clone(),
 		path: sq.path,
@@ -326,6 +376,28 @@ func (sq *SkillQuery) WithUser(opts ...func(*UserQuery)) *SkillQuery {
 		opt(query)
 	}
 	sq.withUser = query
+	return sq
+}
+
+// WithTimePreferences tells the query-builder to eager-load the nodes that are connected to
+// the "time_preferences" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *SkillQuery) WithTimePreferences(opts ...func(*TimePreferenceQuery)) *SkillQuery {
+	query := (&TimePreferenceClient{config: sq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	sq.withTimePreferences = query
+	return sq
+}
+
+// WithProposals tells the query-builder to eager-load the nodes that are connected to
+// the "proposals" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *SkillQuery) WithProposals(opts ...func(*ProposalQuery)) *SkillQuery {
+	query := (&ProposalClient{config: sq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	sq.withProposals = query
 	return sq
 }
 
@@ -408,9 +480,11 @@ func (sq *SkillQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Skill,
 		nodes       = []*Skill{}
 		withFKs     = sq.withFKs
 		_spec       = sq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [4]bool{
 			sq.withCategories != nil,
 			sq.withUser != nil,
+			sq.withTimePreferences != nil,
+			sq.withProposals != nil,
 		}
 	)
 	if sq.withUser != nil {
@@ -447,6 +521,20 @@ func (sq *SkillQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Skill,
 	if query := sq.withUser; query != nil {
 		if err := sq.loadUser(ctx, query, nodes, nil,
 			func(n *Skill, e *User) { n.Edges.User = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := sq.withTimePreferences; query != nil {
+		if err := sq.loadTimePreferences(ctx, query, nodes,
+			func(n *Skill) { n.Edges.TimePreferences = []*TimePreference{} },
+			func(n *Skill, e *TimePreference) { n.Edges.TimePreferences = append(n.Edges.TimePreferences, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := sq.withProposals; query != nil {
+		if err := sq.loadProposals(ctx, query, nodes,
+			func(n *Skill) { n.Edges.Proposals = []*Proposal{} },
+			func(n *Skill, e *Proposal) { n.Edges.Proposals = append(n.Edges.Proposals, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -543,6 +631,98 @@ func (sq *SkillQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*S
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (sq *SkillQuery) loadTimePreferences(ctx context.Context, query *TimePreferenceQuery, nodes []*Skill, init func(*Skill), assign func(*Skill, *TimePreference)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Skill)
+	nids := make(map[int]map[*Skill]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(skill.TimePreferencesTable)
+		s.Join(joinT).On(s.C(timepreference.FieldID), joinT.C(skill.TimePreferencesPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(skill.TimePreferencesPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(skill.TimePreferencesPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Skill]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*TimePreference](ctx, query, qr, query.inters)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "time_preferences" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (sq *SkillQuery) loadProposals(ctx context.Context, query *ProposalQuery, nodes []*Skill, init func(*Skill), assign func(*Skill, *Proposal)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Skill)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Proposal(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(skill.ProposalsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.skill_proposals
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "skill_proposals" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "skill_proposals" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

@@ -17,6 +17,8 @@ const (
 	FieldID = "id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldTimezone holds the string denoting the timezone field in the database.
+	FieldTimezone = "timezone"
 	// FieldEmailAddress holds the string denoting the email_address field in the database.
 	FieldEmailAddress = "email_address"
 	// FieldPassword holds the string denoting the password field in the database.
@@ -29,6 +31,8 @@ const (
 	FieldPremium = "premium"
 	// EdgeSkills holds the string denoting the skills edge name in mutations.
 	EdgeSkills = "skills"
+	// EdgeCalendars holds the string denoting the calendars edge name in mutations.
+	EdgeCalendars = "calendars"
 	// EdgeTasks holds the string denoting the tasks edge name in mutations.
 	EdgeTasks = "tasks"
 	// EdgeMeetings holds the string denoting the meetings edge name in mutations.
@@ -50,6 +54,13 @@ const (
 	SkillsInverseTable = "skills"
 	// SkillsColumn is the table column denoting the skills relation/edge.
 	SkillsColumn = "user_skills"
+	// CalendarsTable is the table that holds the calendars relation/edge.
+	CalendarsTable = "calendars"
+	// CalendarsInverseTable is the table name for the Calendar entity.
+	// It exists in this package in order to avoid circular dependency with the "calendar" package.
+	CalendarsInverseTable = "calendars"
+	// CalendarsColumn is the table column denoting the calendars relation/edge.
+	CalendarsColumn = "user_calendars"
 	// TasksTable is the table that holds the tasks relation/edge.
 	TasksTable = "tasks"
 	// TasksInverseTable is the table name for the Task entity.
@@ -98,6 +109,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldName,
+	FieldTimezone,
 	FieldEmailAddress,
 	FieldPassword,
 	FieldCreatedAt,
@@ -116,6 +128,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultTimezone holds the default value on creation for the "timezone" field.
+	DefaultTimezone string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUUID holds the default value on creation for the "uuid" field.
@@ -135,6 +149,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByTimezone orders the results by the timezone field.
+func ByTimezone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTimezone, opts...).ToFunc()
 }
 
 // ByEmailAddress orders the results by the email_address field.
@@ -173,6 +192,20 @@ func BySkillsCount(opts ...sql.OrderTermOption) OrderOption {
 func BySkills(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newSkillsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByCalendarsCount orders the results by calendars count.
+func ByCalendarsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCalendarsStep(), opts...)
+	}
+}
+
+// ByCalendars orders the results by calendars terms.
+func ByCalendars(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCalendarsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -257,6 +290,13 @@ func newSkillsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SkillsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SkillsTable, SkillsColumn),
+	)
+}
+func newCalendarsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CalendarsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CalendarsTable, CalendarsColumn),
 	)
 }
 func newTasksStep() *sqlgraph.Step {

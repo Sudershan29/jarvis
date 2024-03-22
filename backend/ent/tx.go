@@ -12,6 +12,8 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Calendar is the client for interacting with the Calendar builders.
+	Calendar *CalendarClient
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
 	// Goal is the client for interacting with the Goal builders.
@@ -22,10 +24,14 @@ type Tx struct {
 	Meeting *MeetingClient
 	// Preference is the client for interacting with the Preference builders.
 	Preference *PreferenceClient
+	// Proposal is the client for interacting with the Proposal builders.
+	Proposal *ProposalClient
 	// Skill is the client for interacting with the Skill builders.
 	Skill *SkillClient
 	// Task is the client for interacting with the Task builders.
 	Task *TaskClient
+	// TimePreference is the client for interacting with the TimePreference builders.
+	TimePreference *TimePreferenceClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -159,13 +165,16 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Calendar = NewCalendarClient(tx.config)
 	tx.Category = NewCategoryClient(tx.config)
 	tx.Goal = NewGoalClient(tx.config)
 	tx.Hobby = NewHobbyClient(tx.config)
 	tx.Meeting = NewMeetingClient(tx.config)
 	tx.Preference = NewPreferenceClient(tx.config)
+	tx.Proposal = NewProposalClient(tx.config)
 	tx.Skill = NewSkillClient(tx.config)
 	tx.Task = NewTaskClient(tx.config)
+	tx.TimePreference = NewTimePreferenceClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 
@@ -176,7 +185,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Category.QueryXXX(), the query will be executed
+// applies a query, for example: Calendar.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

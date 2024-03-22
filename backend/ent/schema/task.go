@@ -2,9 +2,10 @@ package schema
 
 import (
 	"time"
+
 	"entgo.io/ent"
-	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
 )
 
 // Task holds the schema definition for the Task entity.
@@ -20,10 +21,12 @@ func (Task) Fields() []ent.Field {
 			Optional(),
 		field.Int("duration").
 			Default(0),
+		field.Int("duration_achieved").
+			Default(0),
 		field.Time("created_at").
-            Default(time.Now),
+			Default(time.Now),
 		field.Time("deadline").
-            Optional(),
+			Optional(),
 	}
 }
 
@@ -35,8 +38,15 @@ func (Task) Edges() []ent.Edge {
 			Ref("tasks"),
 
 		// O2M
-        edge.From("user", User.Type).
+		edge.From("user", User.Type).
 			Ref("tasks").
-            Unique(),
-    }
+			Unique(),
+
+		// M2M
+		edge.From("time_preferences", TimePreference.Type).
+			Ref("tasks"),
+
+		// O2M
+		edge.To("proposals", Proposal.Type),
+	}
 }

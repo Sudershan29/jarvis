@@ -21,6 +21,8 @@ type User struct {
 	ID int `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Timezone holds the value of the "timezone" field.
+	Timezone string `json:"timezone,omitempty"`
 	// EmailAddress holds the value of the "email_address" field.
 	EmailAddress string `json:"email_address,omitempty"`
 	// Password holds the value of the "password" field.
@@ -41,6 +43,8 @@ type User struct {
 type UserEdges struct {
 	// Skills holds the value of the skills edge.
 	Skills []*Skill `json:"skills,omitempty"`
+	// Calendars holds the value of the calendars edge.
+	Calendars []*Calendar `json:"calendars,omitempty"`
 	// Tasks holds the value of the tasks edge.
 	Tasks []*Task `json:"tasks,omitempty"`
 	// Meetings holds the value of the meetings edge.
@@ -55,7 +59,7 @@ type UserEdges struct {
 	Preference *Preference `json:"preference,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [8]bool
 }
 
 // SkillsOrErr returns the Skills value or an error if the edge
@@ -67,10 +71,19 @@ func (e UserEdges) SkillsOrErr() ([]*Skill, error) {
 	return nil, &NotLoadedError{edge: "skills"}
 }
 
+// CalendarsOrErr returns the Calendars value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) CalendarsOrErr() ([]*Calendar, error) {
+	if e.loadedTypes[1] {
+		return e.Calendars, nil
+	}
+	return nil, &NotLoadedError{edge: "calendars"}
+}
+
 // TasksOrErr returns the Tasks value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) TasksOrErr() ([]*Task, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.Tasks, nil
 	}
 	return nil, &NotLoadedError{edge: "tasks"}
@@ -79,7 +92,7 @@ func (e UserEdges) TasksOrErr() ([]*Task, error) {
 // MeetingsOrErr returns the Meetings value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) MeetingsOrErr() ([]*Meeting, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.Meetings, nil
 	}
 	return nil, &NotLoadedError{edge: "meetings"}
@@ -88,7 +101,7 @@ func (e UserEdges) MeetingsOrErr() ([]*Meeting, error) {
 // HobbiesOrErr returns the Hobbies value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) HobbiesOrErr() ([]*Hobby, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.Hobbies, nil
 	}
 	return nil, &NotLoadedError{edge: "hobbies"}
@@ -97,7 +110,7 @@ func (e UserEdges) HobbiesOrErr() ([]*Hobby, error) {
 // GoalsOrErr returns the Goals value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) GoalsOrErr() ([]*Goal, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.Goals, nil
 	}
 	return nil, &NotLoadedError{edge: "goals"}
@@ -106,7 +119,7 @@ func (e UserEdges) GoalsOrErr() ([]*Goal, error) {
 // CategoriesOrErr returns the Categories value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) CategoriesOrErr() ([]*Category, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.Categories, nil
 	}
 	return nil, &NotLoadedError{edge: "categories"}
@@ -115,7 +128,7 @@ func (e UserEdges) CategoriesOrErr() ([]*Category, error) {
 // PreferenceOrErr returns the Preference value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e UserEdges) PreferenceOrErr() (*Preference, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		if e.Preference == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: preference.Label}
@@ -134,7 +147,7 @@ func (*User) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case user.FieldID:
 			values[i] = new(sql.NullInt64)
-		case user.FieldName, user.FieldEmailAddress, user.FieldPassword:
+		case user.FieldName, user.FieldTimezone, user.FieldEmailAddress, user.FieldPassword:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -166,6 +179,12 @@ func (u *User) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				u.Name = value.String
+			}
+		case user.FieldTimezone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field timezone", values[i])
+			} else if value.Valid {
+				u.Timezone = value.String
 			}
 		case user.FieldEmailAddress:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -213,6 +232,11 @@ func (u *User) Value(name string) (ent.Value, error) {
 // QuerySkills queries the "skills" edge of the User entity.
 func (u *User) QuerySkills() *SkillQuery {
 	return NewUserClient(u.config).QuerySkills(u)
+}
+
+// QueryCalendars queries the "calendars" edge of the User entity.
+func (u *User) QueryCalendars() *CalendarQuery {
+	return NewUserClient(u.config).QueryCalendars(u)
 }
 
 // QueryTasks queries the "tasks" edge of the User entity.
@@ -270,6 +294,9 @@ func (u *User) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", u.ID))
 	builder.WriteString("name=")
 	builder.WriteString(u.Name)
+	builder.WriteString(", ")
+	builder.WriteString("timezone=")
+	builder.WriteString(u.Timezone)
 	builder.WriteString(", ")
 	builder.WriteString("email_address=")
 	builder.WriteString(u.EmailAddress)

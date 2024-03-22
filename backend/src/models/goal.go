@@ -2,9 +2,9 @@ package models
 
 import (
 	"backend/ent"
-	"backend/src/lib"
 	"backend/ent/goal"
 	"backend/ent/user"
+	"backend/src/lib"
 )
 
 type GoalModel struct {
@@ -12,12 +12,12 @@ type GoalModel struct {
 }
 
 type GoalJSON struct {
-	Name 	     string `json:"name"`
-	Description	 string `json:"description"`
-	Categories []string `json:categories`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Categories  []string `json:"categories"`
 }
 
-func (s GoalModel) Categories() ([]*ent.Category, error){
+func (s GoalModel) Categories() ([]*ent.Category, error) {
 	dbClient := lib.DbCtx
 	return s.Goal.QueryCategories().All(dbClient.Context)
 }
@@ -25,12 +25,13 @@ func (s GoalModel) Categories() ([]*ent.Category, error){
 func (s GoalModel) Marshal() GoalJSON {
 	catArr := make([]string, 0)
 	categories, _ := s.Categories()
-	for _, cat := range categories { catArr = append(catArr, cat.Name) }
+	for _, cat := range categories {
+		catArr = append(catArr, cat.Name)
+	}
 	return GoalJSON{s.Goal.Name, s.Goal.Description, catArr}
 }
 
-
-/* * * * * * * * * * * * 
+/* * * * * * * * * * * *
 
 		APIs
 
@@ -40,20 +41,24 @@ func GoalCreate(name, description string, categories []string, currUser *JwtUser
 	currUser.Load()
 	dbClient := lib.DbCtx
 	sOrm := dbClient.Client.Goal.
-				Create().
-				SetName(name).
-				SetUser(currUser.Model.User).
-				SetDescription(description)
+		Create().
+		SetName(name).
+		SetUser(currUser.Model.User).
+		SetDescription(description)
 
 	for _, cat := range categories {
 		catModel, err := CategoryFindOrCreate(cat, currUser)
-		if err != nil { continue }
+		if err != nil {
+			continue
+		}
 		sOrm.AddCategories(catModel.Category)
 	}
 
 	s, err := sOrm.Save(dbClient.Context)
 
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	goal := GoalModel{s}
 	return &goal, nil
@@ -62,10 +67,10 @@ func GoalCreate(name, description string, categories []string, currUser *JwtUser
 func GoalShowAll(currUser *JwtUser) ([]*GoalModel, error) {
 	dbClient := lib.DbCtx
 	goals, err := dbClient.Client.Goal.
-					Query().
-					Where(goal.HasUserWith(user.UUID(currUser.UserId))).
-					All(dbClient.Context)
-	
+		Query().
+		Where(goal.HasUserWith(user.UUID(currUser.UserId))).
+		All(dbClient.Context)
+
 	if err != nil {
 		return make([]*GoalModel, 0), err
 	}

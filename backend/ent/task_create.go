@@ -4,7 +4,9 @@ package ent
 
 import (
 	"backend/ent/category"
+	"backend/ent/proposal"
 	"backend/ent/task"
+	"backend/ent/timepreference"
 	"backend/ent/user"
 	"context"
 	"errors"
@@ -52,6 +54,20 @@ func (tc *TaskCreate) SetDuration(i int) *TaskCreate {
 func (tc *TaskCreate) SetNillableDuration(i *int) *TaskCreate {
 	if i != nil {
 		tc.SetDuration(*i)
+	}
+	return tc
+}
+
+// SetDurationAchieved sets the "duration_achieved" field.
+func (tc *TaskCreate) SetDurationAchieved(i int) *TaskCreate {
+	tc.mutation.SetDurationAchieved(i)
+	return tc
+}
+
+// SetNillableDurationAchieved sets the "duration_achieved" field if the given value is not nil.
+func (tc *TaskCreate) SetNillableDurationAchieved(i *int) *TaskCreate {
+	if i != nil {
+		tc.SetDurationAchieved(*i)
 	}
 	return tc
 }
@@ -118,6 +134,36 @@ func (tc *TaskCreate) SetUser(u *User) *TaskCreate {
 	return tc.SetUserID(u.ID)
 }
 
+// AddTimePreferenceIDs adds the "time_preferences" edge to the TimePreference entity by IDs.
+func (tc *TaskCreate) AddTimePreferenceIDs(ids ...int) *TaskCreate {
+	tc.mutation.AddTimePreferenceIDs(ids...)
+	return tc
+}
+
+// AddTimePreferences adds the "time_preferences" edges to the TimePreference entity.
+func (tc *TaskCreate) AddTimePreferences(t ...*TimePreference) *TaskCreate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return tc.AddTimePreferenceIDs(ids...)
+}
+
+// AddProposalIDs adds the "proposals" edge to the Proposal entity by IDs.
+func (tc *TaskCreate) AddProposalIDs(ids ...int) *TaskCreate {
+	tc.mutation.AddProposalIDs(ids...)
+	return tc
+}
+
+// AddProposals adds the "proposals" edges to the Proposal entity.
+func (tc *TaskCreate) AddProposals(p ...*Proposal) *TaskCreate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return tc.AddProposalIDs(ids...)
+}
+
 // Mutation returns the TaskMutation object of the builder.
 func (tc *TaskCreate) Mutation() *TaskMutation {
 	return tc.mutation
@@ -157,6 +203,10 @@ func (tc *TaskCreate) defaults() {
 		v := task.DefaultDuration
 		tc.mutation.SetDuration(v)
 	}
+	if _, ok := tc.mutation.DurationAchieved(); !ok {
+		v := task.DefaultDurationAchieved
+		tc.mutation.SetDurationAchieved(v)
+	}
 	if _, ok := tc.mutation.CreatedAt(); !ok {
 		v := task.DefaultCreatedAt()
 		tc.mutation.SetCreatedAt(v)
@@ -170,6 +220,9 @@ func (tc *TaskCreate) check() error {
 	}
 	if _, ok := tc.mutation.Duration(); !ok {
 		return &ValidationError{Name: "duration", err: errors.New(`ent: missing required field "Task.duration"`)}
+	}
+	if _, ok := tc.mutation.DurationAchieved(); !ok {
+		return &ValidationError{Name: "duration_achieved", err: errors.New(`ent: missing required field "Task.duration_achieved"`)}
 	}
 	if _, ok := tc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Task.created_at"`)}
@@ -212,6 +265,10 @@ func (tc *TaskCreate) createSpec() (*Task, *sqlgraph.CreateSpec) {
 		_spec.SetField(task.FieldDuration, field.TypeInt, value)
 		_node.Duration = value
 	}
+	if value, ok := tc.mutation.DurationAchieved(); ok {
+		_spec.SetField(task.FieldDurationAchieved, field.TypeInt, value)
+		_node.DurationAchieved = value
+	}
 	if value, ok := tc.mutation.CreatedAt(); ok {
 		_spec.SetField(task.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -251,6 +308,38 @@ func (tc *TaskCreate) createSpec() (*Task, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.user_tasks = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := tc.mutation.TimePreferencesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   task.TimePreferencesTable,
+			Columns: task.TimePreferencesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(timepreference.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := tc.mutation.ProposalsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   task.ProposalsTable,
+			Columns: []string{task.ProposalsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(proposal.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

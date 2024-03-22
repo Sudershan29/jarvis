@@ -70,6 +70,11 @@ func Duration(v int) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldDuration, v))
 }
 
+// DurationAchieved applies equality check predicate on the "duration_achieved" field. It's identical to DurationAchievedEQ.
+func DurationAchieved(v int) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldDurationAchieved, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldCreatedAt, v))
@@ -260,6 +265,46 @@ func DurationLTE(v int) predicate.Task {
 	return predicate.Task(sql.FieldLTE(FieldDuration, v))
 }
 
+// DurationAchievedEQ applies the EQ predicate on the "duration_achieved" field.
+func DurationAchievedEQ(v int) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldDurationAchieved, v))
+}
+
+// DurationAchievedNEQ applies the NEQ predicate on the "duration_achieved" field.
+func DurationAchievedNEQ(v int) predicate.Task {
+	return predicate.Task(sql.FieldNEQ(FieldDurationAchieved, v))
+}
+
+// DurationAchievedIn applies the In predicate on the "duration_achieved" field.
+func DurationAchievedIn(vs ...int) predicate.Task {
+	return predicate.Task(sql.FieldIn(FieldDurationAchieved, vs...))
+}
+
+// DurationAchievedNotIn applies the NotIn predicate on the "duration_achieved" field.
+func DurationAchievedNotIn(vs ...int) predicate.Task {
+	return predicate.Task(sql.FieldNotIn(FieldDurationAchieved, vs...))
+}
+
+// DurationAchievedGT applies the GT predicate on the "duration_achieved" field.
+func DurationAchievedGT(v int) predicate.Task {
+	return predicate.Task(sql.FieldGT(FieldDurationAchieved, v))
+}
+
+// DurationAchievedGTE applies the GTE predicate on the "duration_achieved" field.
+func DurationAchievedGTE(v int) predicate.Task {
+	return predicate.Task(sql.FieldGTE(FieldDurationAchieved, v))
+}
+
+// DurationAchievedLT applies the LT predicate on the "duration_achieved" field.
+func DurationAchievedLT(v int) predicate.Task {
+	return predicate.Task(sql.FieldLT(FieldDurationAchieved, v))
+}
+
+// DurationAchievedLTE applies the LTE predicate on the "duration_achieved" field.
+func DurationAchievedLTE(v int) predicate.Task {
+	return predicate.Task(sql.FieldLTE(FieldDurationAchieved, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldCreatedAt, v))
@@ -388,6 +433,52 @@ func HasUser() predicate.Task {
 func HasUserWith(preds ...predicate.User) predicate.Task {
 	return predicate.Task(func(s *sql.Selector) {
 		step := newUserStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasTimePreferences applies the HasEdge predicate on the "time_preferences" edge.
+func HasTimePreferences() predicate.Task {
+	return predicate.Task(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, TimePreferencesTable, TimePreferencesPrimaryKey...),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTimePreferencesWith applies the HasEdge predicate on the "time_preferences" edge with a given conditions (other predicates).
+func HasTimePreferencesWith(preds ...predicate.TimePreference) predicate.Task {
+	return predicate.Task(func(s *sql.Selector) {
+		step := newTimePreferencesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasProposals applies the HasEdge predicate on the "proposals" edge.
+func HasProposals() predicate.Task {
+	return predicate.Task(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ProposalsTable, ProposalsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProposalsWith applies the HasEdge predicate on the "proposals" edge with a given conditions (other predicates).
+func HasProposalsWith(preds ...predicate.Proposal) predicate.Task {
+	return predicate.Task(func(s *sql.Selector) {
+		step := newProposalsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

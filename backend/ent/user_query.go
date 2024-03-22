@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"backend/ent/calendar"
 	"backend/ent/category"
 	"backend/ent/goal"
 	"backend/ent/hobby"
@@ -30,6 +31,7 @@ type UserQuery struct {
 	inters         []Interceptor
 	predicates     []predicate.User
 	withSkills     *SkillQuery
+	withCalendars  *CalendarQuery
 	withTasks      *TaskQuery
 	withMeetings   *MeetingQuery
 	withHobbies    *HobbyQuery
@@ -87,6 +89,28 @@ func (uq *UserQuery) QuerySkills() *SkillQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(skill.Table, skill.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.SkillsTable, user.SkillsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCalendars chains the current query on the "calendars" edge.
+func (uq *UserQuery) QueryCalendars() *CalendarQuery {
+	query := (&CalendarClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(calendar.Table, calendar.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.CalendarsTable, user.CalendarsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -419,6 +443,7 @@ func (uq *UserQuery) Clone() *UserQuery {
 		inters:         append([]Interceptor{}, uq.inters...),
 		predicates:     append([]predicate.User{}, uq.predicates...),
 		withSkills:     uq.withSkills.Clone(),
+		withCalendars:  uq.withCalendars.Clone(),
 		withTasks:      uq.withTasks.Clone(),
 		withMeetings:   uq.withMeetings.Clone(),
 		withHobbies:    uq.withHobbies.Clone(),
@@ -439,6 +464,17 @@ func (uq *UserQuery) WithSkills(opts ...func(*SkillQuery)) *UserQuery {
 		opt(query)
 	}
 	uq.withSkills = query
+	return uq
+}
+
+// WithCalendars tells the query-builder to eager-load the nodes that are connected to
+// the "calendars" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithCalendars(opts ...func(*CalendarQuery)) *UserQuery {
+	query := (&CalendarClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withCalendars = query
 	return uq
 }
 
@@ -586,8 +622,9 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [7]bool{
+		loadedTypes = [8]bool{
 			uq.withSkills != nil,
+			uq.withCalendars != nil,
 			uq.withTasks != nil,
 			uq.withMeetings != nil,
 			uq.withHobbies != nil,
@@ -618,6 +655,13 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := uq.loadSkills(ctx, query, nodes,
 			func(n *User) { n.Edges.Skills = []*Skill{} },
 			func(n *User, e *Skill) { n.Edges.Skills = append(n.Edges.Skills, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withCalendars; query != nil {
+		if err := uq.loadCalendars(ctx, query, nodes,
+			func(n *User) { n.Edges.Calendars = []*Calendar{} },
+			func(n *User, e *Calendar) { n.Edges.Calendars = append(n.Edges.Calendars, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -691,6 +735,37 @@ func (uq *UserQuery) loadSkills(ctx context.Context, query *SkillQuery, nodes []
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_skills" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadCalendars(ctx context.Context, query *CalendarQuery, nodes []*User, init func(*User), assign func(*User, *Calendar)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Calendar(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.CalendarsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_calendars
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_calendars" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_calendars" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

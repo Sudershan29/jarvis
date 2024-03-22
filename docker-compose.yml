@@ -12,13 +12,19 @@ services:
       - DATABASE_PORT=5432
       - DATABASE_PASSWORD=postgres
       - DATABASE_USER=postgres
-      - DATABASE_HOST=peachtree-database-1
+      - DATABASE_HOST=jarvis-database-1
       - DATABASE_NAME=peachtree_development
 
+      # Redis credentials
+      - REDIS_URL=jarvis-redis-1
+      - REDIS_PORT=6379
+
       - JWT_KEY=byebye
+      - SESSION_KEY=helluu
 
     depends_on:
       - database
+      - redis
 
     volumes:
       - ./backend:/usr/src/app/
@@ -52,7 +58,17 @@ services:
     
     volumes:
       - ./frontend:/app
+      - /app/node_modules
+  
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - jarvis-redis-data:/data
 
 volumes:
-  peachtree-database-data:
+  peachtree-database-data:  # NOTE: CHANGE THAT
+    external: true
+  jarvis-redis-data:
     external: true

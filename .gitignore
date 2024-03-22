@@ -1,2 +1,3 @@
 
 backend/logs/*
+backend/config/*google_oauth.json

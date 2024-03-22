@@ -26,6 +26,8 @@ type Skill struct {
 	Progress int `json:"progress,omitempty"`
 	// Duration holds the value of the "duration" field.
 	Duration int `json:"duration,omitempty"`
+	// DurationAchieved holds the value of the "duration_achieved" field.
+	DurationAchieved int `json:"duration_achieved,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -41,9 +43,13 @@ type SkillEdges struct {
 	Categories []*Category `json:"categories,omitempty"`
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
+	// TimePreferences holds the value of the time_preferences edge.
+	TimePreferences []*TimePreference `json:"time_preferences,omitempty"`
+	// Proposals holds the value of the proposals edge.
+	Proposals []*Proposal `json:"proposals,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [4]bool
 }
 
 // CategoriesOrErr returns the Categories value or an error if the edge
@@ -68,12 +74,30 @@ func (e SkillEdges) UserOrErr() (*User, error) {
 	return nil, &NotLoadedError{edge: "user"}
 }
 
+// TimePreferencesOrErr returns the TimePreferences value or an error if the edge
+// was not loaded in eager-loading.
+func (e SkillEdges) TimePreferencesOrErr() ([]*TimePreference, error) {
+	if e.loadedTypes[2] {
+		return e.TimePreferences, nil
+	}
+	return nil, &NotLoadedError{edge: "time_preferences"}
+}
+
+// ProposalsOrErr returns the Proposals value or an error if the edge
+// was not loaded in eager-loading.
+func (e SkillEdges) ProposalsOrErr() ([]*Proposal, error) {
+	if e.loadedTypes[3] {
+		return e.Proposals, nil
+	}
+	return nil, &NotLoadedError{edge: "proposals"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Skill) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case skill.FieldID, skill.FieldProgress, skill.FieldDuration:
+		case skill.FieldID, skill.FieldProgress, skill.FieldDuration, skill.FieldDurationAchieved:
 			values[i] = new(sql.NullInt64)
 		case skill.FieldName, skill.FieldLevel:
 			values[i] = new(sql.NullString)
@@ -126,6 +150,12 @@ func (s *Skill) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				s.Duration = int(value.Int64)
 			}
+		case skill.FieldDurationAchieved:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field duration_achieved", values[i])
+			} else if value.Valid {
+				s.DurationAchieved = int(value.Int64)
+			}
 		case skill.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -162,6 +192,16 @@ func (s *Skill) QueryUser() *UserQuery {
 	return NewSkillClient(s.config).QueryUser(s)
 }
 
+// QueryTimePreferences queries the "time_preferences" edge of the Skill entity.
+func (s *Skill) QueryTimePreferences() *TimePreferenceQuery {
+	return NewSkillClient(s.config).QueryTimePreferences(s)
+}
+
+// QueryProposals queries the "proposals" edge of the Skill entity.
+func (s *Skill) QueryProposals() *ProposalQuery {
+	return NewSkillClient(s.config).QueryProposals(s)
+}
+
 // Update returns a builder for updating this Skill.
 // Note that you need to call Skill.Unwrap() before calling this method if this Skill
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -196,6 +236,9 @@ func (s *Skill) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("duration=")
 	builder.WriteString(fmt.Sprintf("%v", s.Duration))
+	builder.WriteString(", ")
+	builder.WriteString("duration_achieved=")
+	builder.WriteString(fmt.Sprintf("%v", s.DurationAchieved))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(s.CreatedAt.Format(time.ANSIC))

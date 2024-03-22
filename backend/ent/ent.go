@@ -3,13 +3,16 @@
 package ent
 
 import (
+	"backend/ent/calendar"
 	"backend/ent/category"
 	"backend/ent/goal"
 	"backend/ent/hobby"
 	"backend/ent/meeting"
 	"backend/ent/preference"
+	"backend/ent/proposal"
 	"backend/ent/skill"
 	"backend/ent/task"
+	"backend/ent/timepreference"
 	"backend/ent/user"
 	"context"
 	"errors"
@@ -80,14 +83,17 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			category.Table:   category.ValidColumn,
-			goal.Table:       goal.ValidColumn,
-			hobby.Table:      hobby.ValidColumn,
-			meeting.Table:    meeting.ValidColumn,
-			preference.Table: preference.ValidColumn,
-			skill.Table:      skill.ValidColumn,
-			task.Table:       task.ValidColumn,
-			user.Table:       user.ValidColumn,
+			calendar.Table:       calendar.ValidColumn,
+			category.Table:       category.ValidColumn,
+			goal.Table:           goal.ValidColumn,
+			hobby.Table:          hobby.ValidColumn,
+			meeting.Table:        meeting.ValidColumn,
+			preference.Table:     preference.ValidColumn,
+			proposal.Table:       proposal.ValidColumn,
+			skill.Table:          skill.ValidColumn,
+			task.Table:           task.ValidColumn,
+			timepreference.Table: timepreference.ValidColumn,
+			user.Table:           user.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

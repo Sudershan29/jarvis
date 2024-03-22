@@ -10,13 +10,16 @@ import (
 
 	"backend/ent/migrate"
 
+	"backend/ent/calendar"
 	"backend/ent/category"
 	"backend/ent/goal"
 	"backend/ent/hobby"
 	"backend/ent/meeting"
 	"backend/ent/preference"
+	"backend/ent/proposal"
 	"backend/ent/skill"
 	"backend/ent/task"
+	"backend/ent/timepreference"
 	"backend/ent/user"
 
 	"entgo.io/ent"
@@ -30,6 +33,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Calendar is the client for interacting with the Calendar builders.
+	Calendar *CalendarClient
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
 	// Goal is the client for interacting with the Goal builders.
@@ -40,10 +45,14 @@ type Client struct {
 	Meeting *MeetingClient
 	// Preference is the client for interacting with the Preference builders.
 	Preference *PreferenceClient
+	// Proposal is the client for interacting with the Proposal builders.
+	Proposal *ProposalClient
 	// Skill is the client for interacting with the Skill builders.
 	Skill *SkillClient
 	// Task is the client for interacting with the Task builders.
 	Task *TaskClient
+	// TimePreference is the client for interacting with the TimePreference builders.
+	TimePreference *TimePreferenceClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -59,13 +68,16 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Calendar = NewCalendarClient(c.config)
 	c.Category = NewCategoryClient(c.config)
 	c.Goal = NewGoalClient(c.config)
 	c.Hobby = NewHobbyClient(c.config)
 	c.Meeting = NewMeetingClient(c.config)
 	c.Preference = NewPreferenceClient(c.config)
+	c.Proposal = NewProposalClient(c.config)
 	c.Skill = NewSkillClient(c.config)
 	c.Task = NewTaskClient(c.config)
+	c.TimePreference = NewTimePreferenceClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -147,16 +159,19 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Category:   NewCategoryClient(cfg),
-		Goal:       NewGoalClient(cfg),
-		Hobby:      NewHobbyClient(cfg),
-		Meeting:    NewMeetingClient(cfg),
-		Preference: NewPreferenceClient(cfg),
-		Skill:      NewSkillClient(cfg),
-		Task:       NewTaskClient(cfg),
-		User:       NewUserClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		Calendar:       NewCalendarClient(cfg),
+		Category:       NewCategoryClient(cfg),
+		Goal:           NewGoalClient(cfg),
+		Hobby:          NewHobbyClient(cfg),
+		Meeting:        NewMeetingClient(cfg),
+		Preference:     NewPreferenceClient(cfg),
+		Proposal:       NewProposalClient(cfg),
+		Skill:          NewSkillClient(cfg),
+		Task:           NewTaskClient(cfg),
+		TimePreference: NewTimePreferenceClient(cfg),
+		User:           NewUserClient(cfg),
 	}, nil
 }
 
@@ -174,23 +189,26 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Category:   NewCategoryClient(cfg),
-		Goal:       NewGoalClient(cfg),
-		Hobby:      NewHobbyClient(cfg),
-		Meeting:    NewMeetingClient(cfg),
-		Preference: NewPreferenceClient(cfg),
-		Skill:      NewSkillClient(cfg),
-		Task:       NewTaskClient(cfg),
-		User:       NewUserClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		Calendar:       NewCalendarClient(cfg),
+		Category:       NewCategoryClient(cfg),
+		Goal:           NewGoalClient(cfg),
+		Hobby:          NewHobbyClient(cfg),
+		Meeting:        NewMeetingClient(cfg),
+		Preference:     NewPreferenceClient(cfg),
+		Proposal:       NewProposalClient(cfg),
+		Skill:          NewSkillClient(cfg),
+		Task:           NewTaskClient(cfg),
+		TimePreference: NewTimePreferenceClient(cfg),
+		User:           NewUserClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Category.
+//		Calendar.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -213,7 +231,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Skill, c.Task, c.User,
+		c.Calendar, c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Proposal,
+		c.Skill, c.Task, c.TimePreference, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -223,7 +242,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Skill, c.Task, c.User,
+		c.Calendar, c.Category, c.Goal, c.Hobby, c.Meeting, c.Preference, c.Proposal,
+		c.Skill, c.Task, c.TimePreference, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -232,6 +252,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *CalendarMutation:
+		return c.Calendar.mutate(ctx, m)
 	case *CategoryMutation:
 		return c.Category.mutate(ctx, m)
 	case *GoalMutation:
@@ -242,14 +264,152 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Meeting.mutate(ctx, m)
 	case *PreferenceMutation:
 		return c.Preference.mutate(ctx, m)
+	case *ProposalMutation:
+		return c.Proposal.mutate(ctx, m)
 	case *SkillMutation:
 		return c.Skill.mutate(ctx, m)
 	case *TaskMutation:
 		return c.Task.mutate(ctx, m)
+	case *TimePreferenceMutation:
+		return c.TimePreference.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// CalendarClient is a client for the Calendar schema.
+type CalendarClient struct {
+	config
+}
+
+// NewCalendarClient returns a client for the Calendar from the given config.
+func NewCalendarClient(c config) *CalendarClient {
+	return &CalendarClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `calendar.Hooks(f(g(h())))`.
+func (c *CalendarClient) Use(hooks ...Hook) {
+	c.hooks.Calendar = append(c.hooks.Calendar, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `calendar.Intercept(f(g(h())))`.
+func (c *CalendarClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Calendar = append(c.inters.Calendar, interceptors...)
+}
+
+// Create returns a builder for creating a Calendar entity.
+func (c *CalendarClient) Create() *CalendarCreate {
+	mutation := newCalendarMutation(c.config, OpCreate)
+	return &CalendarCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Calendar entities.
+func (c *CalendarClient) CreateBulk(builders ...*CalendarCreate) *CalendarCreateBulk {
+	return &CalendarCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Calendar.
+func (c *CalendarClient) Update() *CalendarUpdate {
+	mutation := newCalendarMutation(c.config, OpUpdate)
+	return &CalendarUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CalendarClient) UpdateOne(ca *Calendar) *CalendarUpdateOne {
+	mutation := newCalendarMutation(c.config, OpUpdateOne, withCalendar(ca))
+	return &CalendarUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CalendarClient) UpdateOneID(id int) *CalendarUpdateOne {
+	mutation := newCalendarMutation(c.config, OpUpdateOne, withCalendarID(id))
+	return &CalendarUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Calendar.
+func (c *CalendarClient) Delete() *CalendarDelete {
+	mutation := newCalendarMutation(c.config, OpDelete)
+	return &CalendarDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CalendarClient) DeleteOne(ca *Calendar) *CalendarDeleteOne {
+	return c.DeleteOneID(ca.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CalendarClient) DeleteOneID(id int) *CalendarDeleteOne {
+	builder := c.Delete().Where(calendar.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CalendarDeleteOne{builder}
+}
+
+// Query returns a query builder for Calendar.
+func (c *CalendarClient) Query() *CalendarQuery {
+	return &CalendarQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCalendar},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Calendar entity by its id.
+func (c *CalendarClient) Get(ctx context.Context, id int) (*Calendar, error) {
+	return c.Query().Where(calendar.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CalendarClient) GetX(ctx context.Context, id int) *Calendar {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Calendar.
+func (c *CalendarClient) QueryUser(ca *Calendar) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ca.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(calendar.Table, calendar.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, calendar.UserTable, calendar.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CalendarClient) Hooks() []Hook {
+	return c.hooks.Calendar
+}
+
+// Interceptors returns the client interceptors.
+func (c *CalendarClient) Interceptors() []Interceptor {
+	return c.inters.Calendar
+}
+
+func (c *CalendarClient) mutate(ctx context.Context, m *CalendarMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CalendarCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CalendarUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CalendarUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CalendarDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Calendar mutation op: %q", m.Op())
 	}
 }
 
@@ -1019,6 +1179,156 @@ func (c *PreferenceClient) mutate(ctx context.Context, m *PreferenceMutation) (V
 	}
 }
 
+// ProposalClient is a client for the Proposal schema.
+type ProposalClient struct {
+	config
+}
+
+// NewProposalClient returns a client for the Proposal from the given config.
+func NewProposalClient(c config) *ProposalClient {
+	return &ProposalClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `proposal.Hooks(f(g(h())))`.
+func (c *ProposalClient) Use(hooks ...Hook) {
+	c.hooks.Proposal = append(c.hooks.Proposal, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `proposal.Intercept(f(g(h())))`.
+func (c *ProposalClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Proposal = append(c.inters.Proposal, interceptors...)
+}
+
+// Create returns a builder for creating a Proposal entity.
+func (c *ProposalClient) Create() *ProposalCreate {
+	mutation := newProposalMutation(c.config, OpCreate)
+	return &ProposalCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Proposal entities.
+func (c *ProposalClient) CreateBulk(builders ...*ProposalCreate) *ProposalCreateBulk {
+	return &ProposalCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Proposal.
+func (c *ProposalClient) Update() *ProposalUpdate {
+	mutation := newProposalMutation(c.config, OpUpdate)
+	return &ProposalUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProposalClient) UpdateOne(pr *Proposal) *ProposalUpdateOne {
+	mutation := newProposalMutation(c.config, OpUpdateOne, withProposal(pr))
+	return &ProposalUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProposalClient) UpdateOneID(id int) *ProposalUpdateOne {
+	mutation := newProposalMutation(c.config, OpUpdateOne, withProposalID(id))
+	return &ProposalUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Proposal.
+func (c *ProposalClient) Delete() *ProposalDelete {
+	mutation := newProposalMutation(c.config, OpDelete)
+	return &ProposalDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProposalClient) DeleteOne(pr *Proposal) *ProposalDeleteOne {
+	return c.DeleteOneID(pr.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProposalClient) DeleteOneID(id int) *ProposalDeleteOne {
+	builder := c.Delete().Where(proposal.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProposalDeleteOne{builder}
+}
+
+// Query returns a query builder for Proposal.
+func (c *ProposalClient) Query() *ProposalQuery {
+	return &ProposalQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProposal},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Proposal entity by its id.
+func (c *ProposalClient) Get(ctx context.Context, id int) (*Proposal, error) {
+	return c.Query().Where(proposal.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProposalClient) GetX(ctx context.Context, id int) *Proposal {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTask queries the task edge of a Proposal.
+func (c *ProposalClient) QueryTask(pr *Proposal) *TaskQuery {
+	query := (&TaskClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(proposal.Table, proposal.FieldID, id),
+			sqlgraph.To(task.Table, task.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, proposal.TaskTable, proposal.TaskColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySkill queries the skill edge of a Proposal.
+func (c *ProposalClient) QuerySkill(pr *Proposal) *SkillQuery {
+	query := (&SkillClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(proposal.Table, proposal.FieldID, id),
+			sqlgraph.To(skill.Table, skill.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, proposal.SkillTable, proposal.SkillColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ProposalClient) Hooks() []Hook {
+	return c.hooks.Proposal
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProposalClient) Interceptors() []Interceptor {
+	return c.inters.Proposal
+}
+
+func (c *ProposalClient) mutate(ctx context.Context, m *ProposalMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProposalCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProposalUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProposalUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProposalDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Proposal mutation op: %q", m.Op())
+	}
+}
+
 // SkillClient is a client for the Skill schema.
 type SkillClient struct {
 	config
@@ -1137,6 +1447,38 @@ func (c *SkillClient) QueryUser(s *Skill) *UserQuery {
 			sqlgraph.From(skill.Table, skill.FieldID, id),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, skill.UserTable, skill.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTimePreferences queries the time_preferences edge of a Skill.
+func (c *SkillClient) QueryTimePreferences(s *Skill) *TimePreferenceQuery {
+	query := (&TimePreferenceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(skill.Table, skill.FieldID, id),
+			sqlgraph.To(timepreference.Table, timepreference.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, skill.TimePreferencesTable, skill.TimePreferencesPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProposals queries the proposals edge of a Skill.
+func (c *SkillClient) QueryProposals(s *Skill) *ProposalQuery {
+	query := (&ProposalClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(skill.Table, skill.FieldID, id),
+			sqlgraph.To(proposal.Table, proposal.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, skill.ProposalsTable, skill.ProposalsColumn),
 		)
 		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
 		return fromV, nil
@@ -1294,6 +1636,38 @@ func (c *TaskClient) QueryUser(t *Task) *UserQuery {
 	return query
 }
 
+// QueryTimePreferences queries the time_preferences edge of a Task.
+func (c *TaskClient) QueryTimePreferences(t *Task) *TimePreferenceQuery {
+	query := (&TimePreferenceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(task.Table, task.FieldID, id),
+			sqlgraph.To(timepreference.Table, timepreference.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, task.TimePreferencesTable, task.TimePreferencesPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProposals queries the proposals edge of a Task.
+func (c *TaskClient) QueryProposals(t *Task) *ProposalQuery {
+	query := (&ProposalClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(task.Table, task.FieldID, id),
+			sqlgraph.To(proposal.Table, proposal.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, task.ProposalsTable, task.ProposalsColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TaskClient) Hooks() []Hook {
 	return c.hooks.Task
@@ -1316,6 +1690,156 @@ func (c *TaskClient) mutate(ctx context.Context, m *TaskMutation) (Value, error)
 		return (&TaskDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Task mutation op: %q", m.Op())
+	}
+}
+
+// TimePreferenceClient is a client for the TimePreference schema.
+type TimePreferenceClient struct {
+	config
+}
+
+// NewTimePreferenceClient returns a client for the TimePreference from the given config.
+func NewTimePreferenceClient(c config) *TimePreferenceClient {
+	return &TimePreferenceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `timepreference.Hooks(f(g(h())))`.
+func (c *TimePreferenceClient) Use(hooks ...Hook) {
+	c.hooks.TimePreference = append(c.hooks.TimePreference, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `timepreference.Intercept(f(g(h())))`.
+func (c *TimePreferenceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TimePreference = append(c.inters.TimePreference, interceptors...)
+}
+
+// Create returns a builder for creating a TimePreference entity.
+func (c *TimePreferenceClient) Create() *TimePreferenceCreate {
+	mutation := newTimePreferenceMutation(c.config, OpCreate)
+	return &TimePreferenceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TimePreference entities.
+func (c *TimePreferenceClient) CreateBulk(builders ...*TimePreferenceCreate) *TimePreferenceCreateBulk {
+	return &TimePreferenceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TimePreference.
+func (c *TimePreferenceClient) Update() *TimePreferenceUpdate {
+	mutation := newTimePreferenceMutation(c.config, OpUpdate)
+	return &TimePreferenceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TimePreferenceClient) UpdateOne(tp *TimePreference) *TimePreferenceUpdateOne {
+	mutation := newTimePreferenceMutation(c.config, OpUpdateOne, withTimePreference(tp))
+	return &TimePreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TimePreferenceClient) UpdateOneID(id int) *TimePreferenceUpdateOne {
+	mutation := newTimePreferenceMutation(c.config, OpUpdateOne, withTimePreferenceID(id))
+	return &TimePreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TimePreference.
+func (c *TimePreferenceClient) Delete() *TimePreferenceDelete {
+	mutation := newTimePreferenceMutation(c.config, OpDelete)
+	return &TimePreferenceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TimePreferenceClient) DeleteOne(tp *TimePreference) *TimePreferenceDeleteOne {
+	return c.DeleteOneID(tp.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TimePreferenceClient) DeleteOneID(id int) *TimePreferenceDeleteOne {
+	builder := c.Delete().Where(timepreference.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TimePreferenceDeleteOne{builder}
+}
+
+// Query returns a query builder for TimePreference.
+func (c *TimePreferenceClient) Query() *TimePreferenceQuery {
+	return &TimePreferenceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTimePreference},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TimePreference entity by its id.
+func (c *TimePreferenceClient) Get(ctx context.Context, id int) (*TimePreference, error) {
+	return c.Query().Where(timepreference.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TimePreferenceClient) GetX(ctx context.Context, id int) *TimePreference {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySkills queries the skills edge of a TimePreference.
+func (c *TimePreferenceClient) QuerySkills(tp *TimePreference) *SkillQuery {
+	query := (&SkillClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := tp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(timepreference.Table, timepreference.FieldID, id),
+			sqlgraph.To(skill.Table, skill.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, timepreference.SkillsTable, timepreference.SkillsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(tp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTasks queries the tasks edge of a TimePreference.
+func (c *TimePreferenceClient) QueryTasks(tp *TimePreference) *TaskQuery {
+	query := (&TaskClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := tp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(timepreference.Table, timepreference.FieldID, id),
+			sqlgraph.To(task.Table, task.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, timepreference.TasksTable, timepreference.TasksPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(tp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TimePreferenceClient) Hooks() []Hook {
+	return c.hooks.TimePreference
+}
+
+// Interceptors returns the client interceptors.
+func (c *TimePreferenceClient) Interceptors() []Interceptor {
+	return c.inters.TimePreference
+}
+
+func (c *TimePreferenceClient) mutate(ctx context.Context, m *TimePreferenceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TimePreferenceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TimePreferenceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TimePreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TimePreferenceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TimePreference mutation op: %q", m.Op())
 	}
 }
 
@@ -1421,6 +1945,22 @@ func (c *UserClient) QuerySkills(u *User) *SkillQuery {
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(skill.Table, skill.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.SkillsTable, user.SkillsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCalendars queries the calendars edge of a User.
+func (c *UserClient) QueryCalendars(u *User) *CalendarQuery {
+	query := (&CalendarClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(calendar.Table, calendar.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.CalendarsTable, user.CalendarsColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -1552,9 +2092,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Category, Goal, Hobby, Meeting, Preference, Skill, Task, User []ent.Hook
+		Calendar, Category, Goal, Hobby, Meeting, Preference, Proposal, Skill, Task,
+		TimePreference, User []ent.Hook
 	}
 	inters struct {
-		Category, Goal, Hobby, Meeting, Preference, Skill, Task, User []ent.Interceptor
+		Calendar, Category, Goal, Hobby, Meeting, Preference, Proposal, Skill, Task,
+		TimePreference, User []ent.Interceptor
 	}
 )

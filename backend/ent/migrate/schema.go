@@ -8,6 +8,29 @@ import (
 )
 
 var (
+	// CalendarsColumns holds the columns for the "calendars" table.
+	CalendarsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "type", Type: field.TypeString},
+		{Name: "token", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_calendars", Type: field.TypeInt, Nullable: true},
+	}
+	// CalendarsTable holds the schema information for the "calendars" table.
+	CalendarsTable = &schema.Table{
+		Name:       "calendars",
+		Columns:    CalendarsColumns,
+		PrimaryKey: []*schema.Column{CalendarsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "calendars_users_calendars",
+				Columns:    []*schema.Column{CalendarsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// CategoriesColumns holds the columns for the "categories" table.
 	CategoriesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -119,6 +142,39 @@ var (
 			},
 		},
 	}
+	// ProposalsColumns holds the columns for the "proposals" table.
+	ProposalsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "allocated_duration", Type: field.TypeInt},
+		{Name: "achieved_duration", Type: field.TypeInt, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "done", "deleted"}, Default: "pending"},
+		{Name: "scheduled_for", Type: field.TypeTime},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "skill_proposals", Type: field.TypeInt, Nullable: true},
+		{Name: "task_proposals", Type: field.TypeInt, Nullable: true},
+	}
+	// ProposalsTable holds the schema information for the "proposals" table.
+	ProposalsTable = &schema.Table{
+		Name:       "proposals",
+		Columns:    ProposalsColumns,
+		PrimaryKey: []*schema.Column{ProposalsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "proposals_skills_proposals",
+				Columns:    []*schema.Column{ProposalsColumns[8]},
+				RefColumns: []*schema.Column{SkillsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "proposals_tasks_proposals",
+				Columns:    []*schema.Column{ProposalsColumns[9]},
+				RefColumns: []*schema.Column{TasksColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// SkillsColumns holds the columns for the "skills" table.
 	SkillsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -126,6 +182,7 @@ var (
 		{Name: "level", Type: field.TypeString},
 		{Name: "progress", Type: field.TypeInt, Default: 0},
 		{Name: "duration", Type: field.TypeInt, Default: 0},
+		{Name: "duration_achieved", Type: field.TypeInt, Default: 0},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "user_skills", Type: field.TypeInt, Nullable: true},
 	}
@@ -137,7 +194,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "skills_users_skills",
-				Columns:    []*schema.Column{SkillsColumns[6]},
+				Columns:    []*schema.Column{SkillsColumns[7]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -149,6 +206,7 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "duration", Type: field.TypeInt, Default: 0},
+		{Name: "duration_achieved", Type: field.TypeInt, Default: 0},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "deadline", Type: field.TypeTime, Nullable: true},
 		{Name: "user_tasks", Type: field.TypeInt, Nullable: true},
@@ -161,16 +219,28 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "tasks_users_tasks",
-				Columns:    []*schema.Column{TasksColumns[6]},
+				Columns:    []*schema.Column{TasksColumns[7]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
 	}
+	// TimePreferencesColumns holds the columns for the "time_preferences" table.
+	TimePreferencesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "day", Type: field.TypeString},
+	}
+	// TimePreferencesTable holds the schema information for the "time_preferences" table.
+	TimePreferencesTable = &schema.Table{
+		Name:       "time_preferences",
+		Columns:    TimePreferencesColumns,
+		PrimaryKey: []*schema.Column{TimePreferencesColumns[0]},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "name", Type: field.TypeString},
+		{Name: "timezone", Type: field.TypeString, Default: "America/Chicago"},
 		{Name: "email_address", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
@@ -186,7 +256,7 @@ var (
 			{
 				Name:    "user_uuid",
 				Unique:  false,
-				Columns: []*schema.Column{UsersColumns[5]},
+				Columns: []*schema.Column{UsersColumns[6]},
 			},
 		},
 	}
@@ -290,29 +360,87 @@ var (
 			},
 		},
 	}
+	// TimePreferenceSkillsColumns holds the columns for the "time_preference_skills" table.
+	TimePreferenceSkillsColumns = []*schema.Column{
+		{Name: "time_preference_id", Type: field.TypeInt},
+		{Name: "skill_id", Type: field.TypeInt},
+	}
+	// TimePreferenceSkillsTable holds the schema information for the "time_preference_skills" table.
+	TimePreferenceSkillsTable = &schema.Table{
+		Name:       "time_preference_skills",
+		Columns:    TimePreferenceSkillsColumns,
+		PrimaryKey: []*schema.Column{TimePreferenceSkillsColumns[0], TimePreferenceSkillsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "time_preference_skills_time_preference_id",
+				Columns:    []*schema.Column{TimePreferenceSkillsColumns[0]},
+				RefColumns: []*schema.Column{TimePreferencesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "time_preference_skills_skill_id",
+				Columns:    []*schema.Column{TimePreferenceSkillsColumns[1]},
+				RefColumns: []*schema.Column{SkillsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
+	// TimePreferenceTasksColumns holds the columns for the "time_preference_tasks" table.
+	TimePreferenceTasksColumns = []*schema.Column{
+		{Name: "time_preference_id", Type: field.TypeInt},
+		{Name: "task_id", Type: field.TypeInt},
+	}
+	// TimePreferenceTasksTable holds the schema information for the "time_preference_tasks" table.
+	TimePreferenceTasksTable = &schema.Table{
+		Name:       "time_preference_tasks",
+		Columns:    TimePreferenceTasksColumns,
+		PrimaryKey: []*schema.Column{TimePreferenceTasksColumns[0], TimePreferenceTasksColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "time_preference_tasks_time_preference_id",
+				Columns:    []*schema.Column{TimePreferenceTasksColumns[0]},
+				RefColumns: []*schema.Column{TimePreferencesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "time_preference_tasks_task_id",
+				Columns:    []*schema.Column{TimePreferenceTasksColumns[1]},
+				RefColumns: []*schema.Column{TasksColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		CalendarsTable,
 		CategoriesTable,
 		GoalsTable,
 		HobbiesTable,
 		MeetingsTable,
 		PreferencesTable,
+		ProposalsTable,
 		SkillsTable,
 		TasksTable,
+		TimePreferencesTable,
 		UsersTable,
 		CategorySkillsTable,
 		CategoryTasksTable,
 		CategoryGoalsTable,
 		CategoryHobbiesTable,
+		TimePreferenceSkillsTable,
+		TimePreferenceTasksTable,
 	}
 )
 
 func init() {
+	CalendarsTable.ForeignKeys[0].RefTable = UsersTable
 	CategoriesTable.ForeignKeys[0].RefTable = UsersTable
 	GoalsTable.ForeignKeys[0].RefTable = UsersTable
 	HobbiesTable.ForeignKeys[0].RefTable = UsersTable
 	MeetingsTable.ForeignKeys[0].RefTable = UsersTable
 	PreferencesTable.ForeignKeys[0].RefTable = UsersTable
+	ProposalsTable.ForeignKeys[0].RefTable = SkillsTable
+	ProposalsTable.ForeignKeys[1].RefTable = TasksTable
 	SkillsTable.ForeignKeys[0].RefTable = UsersTable
 	TasksTable.ForeignKeys[0].RefTable = UsersTable
 	CategorySkillsTable.ForeignKeys[0].RefTable = CategoriesTable
@@ -323,4 +451,8 @@ func init() {
 	CategoryGoalsTable.ForeignKeys[1].RefTable = GoalsTable
 	CategoryHobbiesTable.ForeignKeys[0].RefTable = CategoriesTable
 	CategoryHobbiesTable.ForeignKeys[1].RefTable = HobbiesTable
+	TimePreferenceSkillsTable.ForeignKeys[0].RefTable = TimePreferencesTable
+	TimePreferenceSkillsTable.ForeignKeys[1].RefTable = SkillsTable
+	TimePreferenceTasksTable.ForeignKeys[0].RefTable = TimePreferencesTable
+	TimePreferenceTasksTable.ForeignKeys[1].RefTable = TasksTable
 }
