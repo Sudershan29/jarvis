@@ -16,8 +16,10 @@ var WEEKNUMBER = map[string]int{
 	"Saturday":  6,
 }
 
+/*
+Expects time in "2006-01-02 15:04:05" format
+*/
 func ParseTimeWithZone(t, timezone string) time.Time {
-	// Central Time location
 	ctLoc, err := time.LoadLocation(timezone)
 	if err != nil {
 		panic(err)

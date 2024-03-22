@@ -5,12 +5,14 @@ import Event from '../../component/Event';
 import { AuthContext } from "../../context/AuthContext";
 import { getEvents } from "../../api/Calendar";
 
-export default function CalendarScreen() {
+export default function CalendarScreen({ startOfDay }) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const { userToken } = useContext(AuthContext);
     const [currentDateRange, setCurrentDateRange] = useState([]);
     const [activeDateIndex, setActiveDateIndex] = useState(0);
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(today);
     const [currEvents, setCurrEvents] = useState([]);
 
     useEffect(() => {
@@ -19,8 +21,8 @@ export default function CalendarScreen() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const dayAfterCurrentDate = new Date(currentDate);
-            dayAfterCurrentDate.setDate(dayAfterCurrentDate.getDate() + 1); // Add 24 hours to the current date
+            let dayAfterCurrentDate = new Date(currentDate);
+            dayAfterCurrentDate.setDate(currentDate.getDate() + 1); // Add 24 hours to the current date
             const events = await getEvents(userToken, currentDate.toISOString(), dayAfterCurrentDate.toISOString());
             setCurrEvents(events);
         };
@@ -28,11 +30,8 @@ export default function CalendarScreen() {
         fetchData();
     }, [activeDateIndex]);
 
-    // Make an API call based on currentDate
-
     const generateDateRange = (offset) => {
         let dates = [];
-        let today = new Date();
         today.setDate(today.getDate() + offset); // Adjust today based on offset
         for (let i = -3; i <= 3; i++) { // Generate 7 days range with today in the center
             let date = new Date(today);
@@ -55,30 +54,29 @@ export default function CalendarScreen() {
 
     return (
         <View style={styles.container}>
-            {/* <Button title="<" onPress={() => generateDateRange(-1)} /> */}
-            <ScrollView horizontal={true} style={styles.dateScroll} showsHorizontalScrollIndicator={false}>
-                {currentDateRange.map((dateInfo, index) => (
-                    <DatePill
-                        key={index}
-                        date={dateInfo.date}
-                        day={dateInfo.day}
-                        month={dateInfo.month}
-                        highlighted={index === activeDateIndex} // Highlight the active date
-                        today={index === 3} // Highlight today
-                        onPressFunc={() => {changeActiveDate(index)}} // Set the clicked date as active
-                    />
-                ))}
-            </ScrollView>
+            <View style={styles.dateScrollContainer}>
+                <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+                    {currentDateRange.map((dateInfo, index) => (
+                        <DatePill
+                            key={index}
+                            date={dateInfo.date}
+                            day={dateInfo.day}
+                            month={dateInfo.month}
+                            highlighted={index === activeDateIndex} // Highlight the active date
+                            today={index === 3} // Highlight today
+                            onPressFunc={() => {changeActiveDate(index)}} // Set the clicked date as active
+                        />
+                    ))}
+                </ScrollView>
+            </View>
             <View style={styles.eventContainer}>
-                <Event 
-                    heading={currentDate === new Date().getDate() ? "Today" : currentDateRange[activeDateIndex]}
-                    isDate={currentDate !== new Date().getDate()}
-                    events={currEvents}
-                    // events={[{ name: "Breakfast", isCancelled: false, startTime: "2023-03-08T08:00:00", endTime: "2023-03-08T09:00:00"}, 
-                    //  { name: "Robert <> Sudershan", isCancelled: false, startTime: "2023-03-08T09:00:00", endTime: "2023-03-08T10:00:00", isGoogleCalendarEvent: true },
-                    //  { name: "Fake Event", isCancelled: true, startTime: "2023-03-08T11:30:00", endTime: "2023-03-08T12:30:00" },
-                    //  { name: "Badminton", isCancelled: false, startTime: "2023-03-08T18:30:00", endTime: "2023-03-08T20:30:00" }]}
-                />
+                <ScrollView>
+                    <Event 
+                        heading={currentDate === new Date().getDate() ? "Today" : currentDateRange[activeDateIndex]}
+                        isDate={currentDate !== new Date().getDate()}
+                        events={currEvents}
+                    />
+                </ScrollView>
             </View>
         </View>
     )
@@ -86,17 +84,16 @@ export default function CalendarScreen() {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
         backgroundColor: '#fff',
         flexDirection: 'column',
         padding: 10,
     },
-    dateScroll: {
-        flex: 1,
-        // marginHorizontal: 50,
+    dateScrollContainer: {
+        height: 100, // Set a fixed height for the date scroll container
     },
     eventContainer: {
-        flex: 6,
+        flex: 1, // Allow this container to expand and fill the space
         // paddingLeft: 10,
         // paddingRight: 10,
     },

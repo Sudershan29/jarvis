@@ -50,7 +50,9 @@ export default function TaskScreen() {
         <View style={styles.container}>
             <ScrollView>
                 {TasksData.map((task, index) => (
-                    <Task name={task.name} 
+                    <Task 
+                        id={task.id}
+                        name={task.name} 
                         deadline={task.deadline} 
                         key={index}
                         description={task.description}

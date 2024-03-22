@@ -124,6 +124,30 @@ func SkillDelete(skillID int, currUser *JwtUser) error {
 	return nil
 }
 
+func SkillFind(skillID int, currUser *JwtUser) (*SkillModel, error) {
+	dbClient := lib.DbCtx
+	skill, err := dbClient.Client.Skill.
+		Query().
+		Where(skill.ID(skillID), skill.HasUserWith(user.UUID(currUser.UserId))).
+		Only(dbClient.Context)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &SkillModel{skill}, nil
+}
+
+func (s *SkillModel) CancelProposal(proposalID int) error {
+	proposal, err := ProposalFindBySkillIDAndProposalID(s.Skill.ID, proposalID)
+
+	if err == nil {
+		return proposal.Cancel()
+	}
+
+	return err
+}
+
 func (s *SkillModel) ProposalsWithTimeFilter(startTime time.Time, endTime time.Time) ([]*ProposalModel, error) {
 	dbClient := lib.DbCtx
 	ps, err := dbClient.Client.Proposal.

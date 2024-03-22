@@ -35,6 +35,20 @@ func (uc *UserCreate) SetName(s string) *UserCreate {
 	return uc
 }
 
+// SetTimezone sets the "timezone" field.
+func (uc *UserCreate) SetTimezone(s string) *UserCreate {
+	uc.mutation.SetTimezone(s)
+	return uc
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (uc *UserCreate) SetNillableTimezone(s *string) *UserCreate {
+	if s != nil {
+		uc.SetTimezone(*s)
+	}
+	return uc
+}
+
 // SetEmailAddress sets the "email_address" field.
 func (uc *UserCreate) SetEmailAddress(s string) *UserCreate {
 	uc.mutation.SetEmailAddress(s)
@@ -248,6 +262,10 @@ func (uc *UserCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (uc *UserCreate) defaults() {
+	if _, ok := uc.mutation.Timezone(); !ok {
+		v := user.DefaultTimezone
+		uc.mutation.SetTimezone(v)
+	}
 	if _, ok := uc.mutation.CreatedAt(); !ok {
 		v := user.DefaultCreatedAt()
 		uc.mutation.SetCreatedAt(v)
@@ -266,6 +284,9 @@ func (uc *UserCreate) defaults() {
 func (uc *UserCreate) check() error {
 	if _, ok := uc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "User.name"`)}
+	}
+	if _, ok := uc.mutation.Timezone(); !ok {
+		return &ValidationError{Name: "timezone", err: errors.New(`ent: missing required field "User.timezone"`)}
 	}
 	if _, ok := uc.mutation.EmailAddress(); !ok {
 		return &ValidationError{Name: "email_address", err: errors.New(`ent: missing required field "User.email_address"`)}
@@ -311,6 +332,10 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.Name(); ok {
 		_spec.SetField(user.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := uc.mutation.Timezone(); ok {
+		_spec.SetField(user.FieldTimezone, field.TypeString, value)
+		_node.Timezone = value
 	}
 	if value, ok := uc.mutation.EmailAddress(); ok {
 		_spec.SetField(user.FieldEmailAddress, field.TypeString, value)

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func Accumulate(userUUID string, date time.Time) []models.CalendarEventAssigner {
+func PrepareAllActivities(userUUID string, date time.Time) []models.CalendarEventAssigner {
 	user := models.NewJwtUser(userUUID)
 	user.Load()
 
@@ -18,10 +18,10 @@ func Accumulate(userUUID string, date time.Time) []models.CalendarEventAssigner 
 	}
 
 	// Find all tasks that are pending, and that can be potentially ordered today
-	// tasks, _ := models.TaskShowAll(user)
-	// for _, task := range tasks {
-	// 	allEvents = append(allEvents, task)
-	// }
+	tasks, _ := models.TaskShowAll(user)
+	for _, task := range tasks {
+		allEvents = append(allEvents, task)
+	}
 
 	return allEvents
 }

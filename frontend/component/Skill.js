@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Card } from 'react-native-elements'
 import { useNavigation } from '@react-navigation/native';
 
-export default function Skill({ name, duration, scheduled, deadline, timepreference, categories }) {
+export default function Skill({ id, name, duration, scheduled, deadline, timepreference, categories }) {
 
     const navigation = useNavigation(); // Access navigation using useNavigation hook
 
@@ -21,6 +21,7 @@ export default function Skill({ name, duration, scheduled, deadline, timeprefere
 
     function handleButtonClick() {
         navigation.navigate('SkillShow', {
+            id: id,
             name: name,
             duration: duration,
             timePreferences: timepreference,

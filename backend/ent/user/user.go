@@ -17,6 +17,8 @@ const (
 	FieldID = "id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldTimezone holds the string denoting the timezone field in the database.
+	FieldTimezone = "timezone"
 	// FieldEmailAddress holds the string denoting the email_address field in the database.
 	FieldEmailAddress = "email_address"
 	// FieldPassword holds the string denoting the password field in the database.
@@ -107,6 +109,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldName,
+	FieldTimezone,
 	FieldEmailAddress,
 	FieldPassword,
 	FieldCreatedAt,
@@ -125,6 +128,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultTimezone holds the default value on creation for the "timezone" field.
+	DefaultTimezone string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUUID holds the default value on creation for the "uuid" field.
@@ -144,6 +149,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByTimezone orders the results by the timezone field.
+func ByTimezone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTimezone, opts...).ToFunc()
 }
 
 // ByEmailAddress orders the results by the email_address field.

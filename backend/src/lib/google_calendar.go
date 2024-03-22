@@ -17,9 +17,13 @@ import (
 	"google.golang.org/api/option"
 )
 
+var GoogleOAuthVerifier = oauth2.GenerateVerifier()
+
+const CalendarName = "Jarvis[Beta]"
+
 type googleCalendarState struct {
 	UserSlug  string `json:"user"`
-	reference string `json:"reference"`
+	Reference string `json:"reference"`
 	// TODO: add more states or random numbers to validate if the backend create this state
 }
 
@@ -65,7 +69,7 @@ func GenerateGCalendarAuthorizationLink(userSlug string) (string, error) {
 	if err != nil {
 		return "", errors.New("Trouble reading Google OAuth configuration")
 	}
-	return config.AuthCodeURL(stateToken, oauth2.AccessTypeOffline), nil
+	return config.AuthCodeURL(stateToken, oauth2.AccessTypeOffline, oauth2.S256ChallengeOption(GoogleOAuthVerifier)), nil
 }
 
 // Retrieve a token, saves the token, then returns the generated client.
@@ -91,29 +95,39 @@ func NewCalendarClient(userSlug string) (*GoogleCalendarClient, error) {
 	return &GoogleCalendarClient{ctx, srv}, nil
 }
 
-func (client *GoogleCalendarClient) ListInternalCalendars() ([]string, error) {
+/*
+Pseudo code:
+
+for calendar in GoogleCalender:
+
+	{id: string, name: string}
+*/
+func (client *GoogleCalendarClient) ListAllCalendarView() ([](map[string]string), error) {
 	// List calendars
 	calendarList, err := client.Calendar.CalendarList.List().Do()
 	if err != nil {
-		return make([]string, 0), err
+		return make([]map[string]string, 0), err
 	}
 
-	var result []string
+	var result []map[string]string
 	// Loop through and print calendar details
 	for _, calendar := range calendarList.Items {
-		result = append(result, fmt.Sprintf("Calendar ID: %s, Summary: %s\n", calendar.Id, calendar.Summary))
+		result = append(result, map[string]string{"id": calendar.Id, "name": calendar.Summary})
 	}
 	return result, nil
 }
 
-func (client *GoogleCalendarClient) AddEvent(eventData *calendar.Event) error {
+/*
+Add event to primary calendar
+*/
+func (client *GoogleCalendarClient) AddEvent(calId string, eventData *calendar.Event) error {
 	// List calendars
-	_, err := client.Calendar.Events.Insert("primary", eventData).Do()
+	_, err := client.Calendar.Events.Insert(calId, eventData).Do()
 	return err
 }
 
-func (client *GoogleCalendarClient) FetchEventsWithFilters(startDate, endDate string) (DayTimeBlock, error) {
-	result := make(DayTimeBlock, 0)
+func (client *GoogleCalendarClient) FetchEventsWithFilters(startDate, endDate string) (GCalendarEventsGroup, error) {
+	result := make(GCalendarEventsGroup, 0)
 	events, err := client.Calendar.Events.List("primary").ShowDeleted(false).
 		SingleEvents(true).TimeMin(startDate).TimeMax(endDate).OrderBy("startTime").Do()
 
@@ -131,21 +145,20 @@ func (client *GoogleCalendarClient) FetchEventsWithFilters(startDate, endDate st
 				continue
 			}
 
-			result = append(result, NewTimeBlock(item.Summary, helpers.ConvertToTimezone(startTime, item.Start.TimeZone),
+			result = append(result, NewGCalendarEvent(item.Summary, helpers.ConvertToTimezone(startTime, item.Start.TimeZone),
 				helpers.ConvertToTimezone(endTime, item.End.TimeZone), false, helpers.CalendarIdToId(item.Id)))
 		}
 	}
 	return result, nil
 }
 
-func (client *GoogleCalendarClient) FetchEvents() (DayTimeBlock, error) {
-	result := make(DayTimeBlock, 0)
+func (client *GoogleCalendarClient) FetchEvents(timezone string) (GCalendarEventsGroup, error) {
+	result := make(GCalendarEventsGroup, 0)
 	t := time.Now().Format(time.RFC3339)
 	events, err := client.Calendar.Events.List("primary").ShowDeleted(false).
 		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
 
 	if err != nil {
-		// log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 		return result, err
 	}
 
@@ -153,10 +166,55 @@ func (client *GoogleCalendarClient) FetchEvents() (DayTimeBlock, error) {
 		for _, item := range events.Items {
 			startTime, _ := time.Parse(time.RFC3339, item.Start.DateTime)
 			endTime, _ := time.Parse(time.RFC3339, item.End.DateTime)
-			result = append(result, NewTimeBlock(item.Summary, helpers.ConvertToTimezone(startTime, "America/Chicago"), helpers.ConvertToTimezone(endTime, "America/Chicago"), true, helpers.CalendarIdToId(item.Id)))
+			result = append(result, NewGCalendarEvent(item.Summary, helpers.ConvertToTimezone(startTime, timezone), helpers.ConvertToTimezone(endTime, timezone), true, helpers.CalendarIdToId(item.Id)))
 		}
 	}
 	return result, nil
+}
+
+func (client *GoogleCalendarClient) FindOrCreateJarvisCalendar(userSlug, timezone string) (string, error) {
+	calendarNames, _ := client.ListAllCalendarView()
+	for _, calendar := range calendarNames {
+		if calendar["name"] == CalendarName {
+			return calendar["id"], nil
+		}
+	}
+
+	cal := &calendar.Calendar{
+		Summary:  CalendarName,
+		TimeZone: timezone,
+	}
+
+	createdCalendar, err := client.Calendar.Calendars.Insert(cal).Do()
+	if err != nil {
+		// log.Fatalf("Unable to create calendar: %v", err)
+		return "", err
+	}
+
+	return createdCalendar.Id, nil
+}
+
+/*
+date needs to be in the format "YYYY-MM-DD"
+calendarId is the `id` for Jarvis in your account
+*/
+// TODO: Make sure it takes a function
+func (client *GoogleCalendarClient) ClearEventsInCalendarByDate(calendarId, date string) error {
+	// List events
+	events, err := client.Calendar.Events.List(calendarId).TimeMin(date + "T00:00:00-00:00").TimeMax(date + "T23:59:59-00:00").Do()
+	if err != nil {
+		return err
+	}
+
+	// Delete each event
+	for _, i := range events.Items {
+		err := client.Calendar.Events.Delete(calendarId, i.Id).Do()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 /*
@@ -167,7 +225,7 @@ const CALENDAR_REDIS_PATTERN = "%s-calendar-token"
 
 func SaveCalendarToken(user *googleCalendarState, token string) bool {
 	config, _ := getGoogleOAuthConfig()
-	tok, _ := config.Exchange(context.TODO(), token)
+	tok, _ := config.Exchange(context.TODO(), token, oauth2.VerifierOption(GoogleOAuthVerifier))
 	tokStr, _ := json.Marshal(tok)
 	err := RedisClient.Store(fmt.Sprintf(CALENDAR_REDIS_PATTERN, user.UserSlug), string(tokStr))
 	return err == nil

@@ -100,6 +100,7 @@ func TaskShowAll(currUser *JwtUser) ([]*TaskModel, error) {
 	tasks, err := dbClient.Client.Task.
 		Query().
 		Where(task.HasUserWith(user.UUID(currUser.UserId))).
+		Order(ent.Desc("created_at")).
 		All(dbClient.Context)
 
 	if err != nil {
@@ -128,6 +129,30 @@ func TaskDelete(taskID int, currUser *JwtUser) error {
 	return dbClient.Client.Task.DeleteOne(task).Exec(dbClient.Context)
 }
 
+func TaskFind(taskID int, currUser *JwtUser) (*TaskModel, error) {
+	dbClient := lib.DbCtx
+	task, err := dbClient.Client.Task.
+		Query().
+		Where(task.ID(taskID), task.HasUserWith(user.UUID(currUser.UserId))).
+		Only(dbClient.Context)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &TaskModel{task}, nil
+}
+
+func (t *TaskModel) CancelProposal(proposalID int) error {
+	proposal, err := ProposalFindByTaskIDAndProposalID(t.Task.ID, proposalID)
+
+	if err == nil {
+		return proposal.Cancel()
+	}
+
+	return err
+}
+
 func (t *TaskModel) ProposalsWithTimeFilter(startTime time.Time, endTime time.Time) ([]*ProposalModel, error) {
 	dbClient := lib.DbCtx
 	ps, err := dbClient.Client.Proposal.
@@ -144,7 +169,7 @@ func (t *TaskModel) ProposalsWithTimeFilter(startTime time.Time, endTime time.Ti
 		return nil, err
 	}
 
-	var proposals []*ProposalModel
+	proposals := make([]*ProposalModel, 0)
 
 	for _, p := range ps {
 		proposals = append(proposals, &ProposalModel{p})

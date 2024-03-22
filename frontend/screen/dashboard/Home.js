@@ -31,11 +31,11 @@ export default function HomeScreen () {
             <View style={{ flex: 1.75, padding: 10 }}>
                 <Text style={{fontSize: 20, fontWeight: "bold"}}>Quick Actions</Text>
                 <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                    <Icon name={"Morning is here!"} key={1} execute={() => { }} image={"alarm-outline"} />
+                    {/* <Icon name={"Morning is here!"} key={1} execute={() => { }} image={"alarm-outline"} />
                     <Icon name={"Sync"} key={1} execute={() => { }} image={"git-pull-request"}/>
-                    <Icon name={"Peace out"} key={1} execute={() => { }} image={"battery-dead"} />
+                    <Icon name={"Peace out"} key={1} execute={() => { }} image={"battery-dead"} /> */}
                     <Icon name={"New Schedule"} key={1} execute={() => { }} image={"refresh"} />
-                    <Icon name={"Holiday"} key={1} execute={() => { }} image={"airplane-outline"} />
+                    {/* <Icon name={"Holiday"} key={1} execute={() => { }} image={"airplane-outline"} /> */}
                 </ScrollView>
             </View>
 

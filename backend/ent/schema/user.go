@@ -19,6 +19,8 @@ type User struct {
 func (User) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name"),
+		field.String("timezone").
+			Default("America/Chicago"),
 		field.String("email_address").
 			Unique(),
 		field.String("password").

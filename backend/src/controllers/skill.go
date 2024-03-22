@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"backend/src/helpers"
 	"backend/src/models"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -63,6 +65,63 @@ func SkillDelete(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 200, "message": "Skill deleted successfully"})
+}
+
+func SkillListProposals(c *gin.Context) {
+	skillID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid skill ID"})
+		return
+	}
+
+	skill, err := models.SkillFind(skillID, CurrentUser(c))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid skill ID"})
+		return
+	}
+
+	proposals, err := skill.ProposalsWithTimeFilter(helpers.StartOfWeek(time.Now()), helpers.EndOfWeek(time.Now()))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "proposals not loading "})
+		return
+	}
+
+	result := make([]models.ProposalJSON, 0)
+	for _, proposal := range proposals {
+		result = append(result, proposal.Marshal())
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 200, "proposals": result})
+}
+
+func SkillCancelProposal(c *gin.Context) {
+	skillID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid skill ID"})
+		return
+	}
+
+	skill, err := models.SkillFind(skillID, CurrentUser(c))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot find skill with given ID"})
+		return
+	}
+
+	proposalID, err := strconv.Atoi(c.Param("proposal_id"))
+
+	if err != nil {
+		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = skill.CancelProposal(proposalID)
+
+	if err != nil {
+		c.JSON(http.StatusNotAcceptable, gin.H{"errors": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 200, "message": "Proposal cancelled successfully"})
 }
 
 // func SkillUpdate(c *gin.Context) {

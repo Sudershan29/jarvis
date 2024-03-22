@@ -4,7 +4,8 @@ import TimePreference from "../../component/TimePreference";
 import { showMessage } from "react-native-flash-message";
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from "../../context/AuthContext";
-import DateTimePicker from '@react-native-community/datetimepicker';
+// import DateTimePicker from '@react-native-community/datetimepicker';
+import { createTask } from "../../api/Task";
 
 export default function TaskCreateScreen() {
     const { userToken } = useContext(AuthContext);
@@ -26,28 +27,28 @@ export default function TaskCreateScreen() {
             categories: showDetails && categories.length ? [categories] : [],
             timepreferences: showDetails ? timePreferences : [],
         };
-        console.log(taskData);
-        // createSkill(userToken, skillData)
-        //     .then(res => {
-        //         if (res.success) {
-        //             showMessage({
-        //                 message: "Skill created successfully",
-        //                 type: "success",
-        //             });
-        //             navigation.navigate('SkillMain');
-        //         } else {
-        //             showMessage({
-        //                 message: res.message,
-        //                 type: "error",
-        //             });
-        //         }
-        //     })
-        //     .catch(err => {
-        //         showMessage({
-        //             message: err.message,
-        //             type: "error",
-        //         });
-        //     });
+
+        createTask(userToken, taskData)
+            .then(res => {
+                if (res.success) {
+                    showMessage({
+                        message: "Task created successfully",
+                        type: "success",
+                    });
+                    navigation.navigate('TaskMain');
+                } else {
+                    showMessage({
+                        message: res.message,
+                        type: "error",
+                    });
+                }
+            })
+            .catch(err => {
+                showMessage({
+                    message: err.message,
+                    type: "error",
+                });
+            });
     };
 
     const handleDeadlineChange = (event, selectedDate) => {
@@ -89,14 +90,11 @@ export default function TaskCreateScreen() {
             <Button title={showDetails ? "Hide Optional Preferences" : "Add Optional Preferences"} onPress={() => setShowDetails(!showDetails)} />
             {showDetails && (
                 <View>
-                    <DateTimePicker
+                    <TextInput
                         style={styles.input}
-                        placeholder="Deadline"
+                        placeholder="Deadline (Eg: 2006-01-02 15:04:05)"
                         value={deadline}
-                        mode="datetime"
-                        minimumDate={new Date().toISOString().split('T')[0]}
-                        onChange={handleDeadlineChange}
-                    />
+                        onChangeText={text => setDeadline(text)} />
 
                     <TimePreference timePreferences={timePreferences} setTimePreferences={setTimePreferences} />
                     <TextInput
@@ -129,3 +127,4 @@ const styles = StyleSheet.create({
         width: '80%',
     },
 });
+

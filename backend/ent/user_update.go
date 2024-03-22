@@ -43,6 +43,20 @@ func (uu *UserUpdate) SetName(s string) *UserUpdate {
 	return uu
 }
 
+// SetTimezone sets the "timezone" field.
+func (uu *UserUpdate) SetTimezone(s string) *UserUpdate {
+	uu.mutation.SetTimezone(s)
+	return uu
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableTimezone(s *string) *UserUpdate {
+	if s != nil {
+		uu.SetTimezone(*s)
+	}
+	return uu
+}
+
 // SetEmailAddress sets the "email_address" field.
 func (uu *UserUpdate) SetEmailAddress(s string) *UserUpdate {
 	uu.mutation.SetEmailAddress(s)
@@ -417,6 +431,9 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := uu.mutation.Name(); ok {
 		_spec.SetField(user.FieldName, field.TypeString, value)
+	}
+	if value, ok := uu.mutation.Timezone(); ok {
+		_spec.SetField(user.FieldTimezone, field.TypeString, value)
 	}
 	if value, ok := uu.mutation.EmailAddress(); ok {
 		_spec.SetField(user.FieldEmailAddress, field.TypeString, value)
@@ -800,6 +817,20 @@ type UserUpdateOne struct {
 // SetName sets the "name" field.
 func (uuo *UserUpdateOne) SetName(s string) *UserUpdateOne {
 	uuo.mutation.SetName(s)
+	return uuo
+}
+
+// SetTimezone sets the "timezone" field.
+func (uuo *UserUpdateOne) SetTimezone(s string) *UserUpdateOne {
+	uuo.mutation.SetTimezone(s)
+	return uuo
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableTimezone(s *string) *UserUpdateOne {
+	if s != nil {
+		uuo.SetTimezone(*s)
+	}
 	return uuo
 }
 
@@ -1207,6 +1238,9 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if value, ok := uuo.mutation.Name(); ok {
 		_spec.SetField(user.FieldName, field.TypeString, value)
+	}
+	if value, ok := uuo.mutation.Timezone(); ok {
+		_spec.SetField(user.FieldTimezone, field.TypeString, value)
 	}
 	if value, ok := uuo.mutation.EmailAddress(); ok {
 		_spec.SetField(user.FieldEmailAddress, field.TypeString, value)

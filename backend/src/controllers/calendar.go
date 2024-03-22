@@ -53,21 +53,22 @@ func CalendarEvents(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	timezone := "America/Chicago"
-	// NOTE: Query this from User
+	timezone := user.TimeZone()
 	userTimeZone, _ := time.LoadLocation(timezone)
 	var startDate, endDate time.Time
 
 	startDateParam := c.Query("startDate")
 	if startDateParam != "" {
-		startDate, _ = helpers.ConvertISOStringToTime(startDateParam, timezone)
+		startDate, _ = helpers.ConvertISOStringToTime(startDateParam, "UTC")
+		startDate = helpers.ConvertToTimezone(startDate, timezone)
 	} else {
 		startDate = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, userTimeZone)
 	}
 
 	endDateParam := c.Query("endDate")
 	if endDateParam != "" {
-		endDate, _ = helpers.ConvertISOStringToTime(endDateParam, timezone)
+		endDate, _ = helpers.ConvertISOStringToTime(endDateParam, "UTC")
+		endDate = helpers.ConvertToTimezone(endDate, timezone)
 	} else {
 		tomorrow := time.Now().AddDate(0, 0, 1)
 		endDate = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, userTimeZone)
@@ -77,7 +78,7 @@ func CalendarEvents(c *gin.Context) {
 	log.Println("End Date: ", endDate)
 
 	calendarEvents, err := user.CalendarEventsWithFilters(helpers.TimeFormatRFC3339(helpers.TimeToUTC(startDate)), helpers.TimeFormatRFC3339(helpers.TimeToUTC(endDate)))
-	// calendarEvents, err := user.CalendarEvents()
+
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"code": 200, "events": calendarEvents})
 	} else {

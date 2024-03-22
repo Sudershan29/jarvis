@@ -112,16 +112,20 @@ func init() {
 	task.DefaultCreatedAt = taskDescCreatedAt.Default.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
+	// userDescTimezone is the schema descriptor for timezone field.
+	userDescTimezone := userFields[1].Descriptor()
+	// user.DefaultTimezone holds the default value on creation for the timezone field.
+	user.DefaultTimezone = userDescTimezone.Default.(string)
 	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[3].Descriptor()
+	userDescCreatedAt := userFields[4].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
 	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
 	// userDescUUID is the schema descriptor for uuid field.
-	userDescUUID := userFields[4].Descriptor()
+	userDescUUID := userFields[5].Descriptor()
 	// user.DefaultUUID holds the default value on creation for the uuid field.
 	user.DefaultUUID = userDescUUID.Default.(func() uuid.UUID)
 	// userDescPremium is the schema descriptor for premium field.
-	userDescPremium := userFields[5].Descriptor()
+	userDescPremium := userFields[6].Descriptor()
 	// user.DefaultPremium holds the default value on creation for the premium field.
 	user.DefaultPremium = userDescPremium.Default.(bool)
 }

@@ -240,6 +240,7 @@ var (
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "name", Type: field.TypeString},
+		{Name: "timezone", Type: field.TypeString, Default: "America/Chicago"},
 		{Name: "email_address", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
@@ -255,7 +256,7 @@ var (
 			{
 				Name:    "user_uuid",
 				Unique:  false,
-				Columns: []*schema.Column{UsersColumns[5]},
+				Columns: []*schema.Column{UsersColumns[6]},
 			},
 		},
 	}

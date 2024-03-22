@@ -47,4 +47,9 @@ func CreateRouter(c *gin.Engine) {
 	calendarGroup := c.Group("/api/v1/calendars")
 	calendarGroup.Use(middleware.JwtAuthMiddleware())
 	CalendarRoute(calendarGroup)
+
+	// Schedule
+	scheduleGroup := c.Group("/api/v1/schedule")
+	scheduleGroup.Use(middleware.JwtAuthMiddleware())
+	ScheduleRoute(scheduleGroup)
 }

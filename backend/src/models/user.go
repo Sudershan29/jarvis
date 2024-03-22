@@ -13,6 +13,15 @@ import (
 )
 
 /*
+	UserRep
+*/
+
+type UserRep interface {
+	TimeZone() string
+	UserUUID() string
+}
+
+/*
 
 	UserModel
 
@@ -91,8 +100,8 @@ func UserFind(key string) (*UserModel, error) {
 	return &user, nil
 }
 
-func (u *UserModel) CalendarEventsWithFilters(startDate, endDate string) (lib.DayTimeBlock, error) {
-	calendarEvents := make(lib.DayTimeBlock, 0)
+func (u *UserModel) CalendarEventsWithFilters(startDate, endDate string) (lib.GCalendarEventsGroup, error) {
+	calendarEvents := make(lib.GCalendarEventsGroup, 0)
 
 	if !u.LoadCalendarClient() {
 		return calendarEvents, errors.New("Cannot load Calendar Client")
@@ -103,15 +112,19 @@ func (u *UserModel) CalendarEventsWithFilters(startDate, endDate string) (lib.Da
 	return calendarEvents, err
 }
 
+func (u *UserModel) TimeZone() string {
+	return "America/Chicago"
+}
+
 // Returns user events that are already in the calendar
-func (u *UserModel) CalendarEvents() (lib.DayTimeBlock, error) {
-	calendarEvents := make(lib.DayTimeBlock, 0)
+func (u *UserModel) CalendarEvents() (lib.GCalendarEventsGroup, error) {
+	calendarEvents := make(lib.GCalendarEventsGroup, 0)
 
 	if !u.LoadCalendarClient() {
 		return calendarEvents, errors.New("Cannot load Calendar Client")
 	}
 
-	calendarEvents, err := u.CalendarClient.FetchEvents()
+	calendarEvents, err := u.CalendarClient.FetchEvents(u.TimeZone())
 	return calendarEvents, err
 }
 
@@ -120,7 +133,8 @@ func (u *UserModel) Calendars() ([]string, error) {
 		return make([]string, 0), errors.New("Cannot load Calendar Client")
 	}
 
-	return u.CalendarClient.ListInternalCalendars()
+	// return u.CalendarClient.ListAllCalendarView()
+	panic("Not Implemented")
 }
 
 func (u *UserModel) ListCalendars() ([]*CalendarModel, error) {
@@ -131,14 +145,14 @@ func (u *UserModel) ListCalendars() ([]*CalendarModel, error) {
 	return CalendarShowAll(NewJwtUser(u.User.UUID.String()))
 }
 
-func (u *UserModel) AddEvents(events []*Event) bool {
+func (u *UserModel) AddEvents(calId string, events []*Event) bool {
 	if !u.LoadCalendarClient() {
 		return false
 	}
 
 	for _, event := range events {
 		for _, calEvent := range event.Confirm() {
-			err := u.CalendarClient.AddEvent(calEvent) // TODO: Make sense of the error
+			err := u.CalendarClient.AddEvent(calId, calEvent) // TODO: Make sense of the error
 			if err != nil {
 				panic(err)
 			}
@@ -198,6 +212,10 @@ func NewJwtUser(user_id string) *JwtUser {
 func (j *JwtUser) Load() {
 	u, _ := UserFind(j.UserId.String())
 	j.Model = u
+}
+
+func (j *JwtUser) Timezone() string {
+	return "America/Chicago"
 }
 
 /*

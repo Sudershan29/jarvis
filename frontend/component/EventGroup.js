@@ -25,7 +25,7 @@ const EventGroup = ({ group, index }) => {
 
     const startTime = new Date(group[0].startTime);
     const endTime = new Date(group[group.length - 1].endTime);
-    const startTimeStr = isToday(startTime) ? 'Today' : `${startTime.getHours()}:${startTime.getMinutes() == 0 ? '00' : startTime.getMinutes()}`;
+    const startTimeStr = `${startTime.getHours()}:${startTime.getMinutes() == 0 ? '00' : startTime.getMinutes()}`;
     const endTimeStr = `${endTime.getHours()}:${endTime.getMinutes() == 0 ? '00' : endTime.getMinutes() }`;
 
     return (

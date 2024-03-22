@@ -71,14 +71,14 @@ func (s *CalendarModel) CalendarUpdateToken(token string) error {
 	return err
 }
 
-func CalendarShow(id int, user *JwtUser) (lib.DayTimeBlock, error) {
+func CalendarShow(id int, user *JwtUser) (lib.GCalendarEventsGroup, error) {
 	userCalendarClient, err := lib.NewCalendarClient(user.UserId.String())
 
 	if err != nil {
-		return lib.DayTimeBlock{}, err
+		return lib.GCalendarEventsGroup{}, err
 	}
 
-	return userCalendarClient.FetchEvents()
+	return userCalendarClient.FetchEvents(user.Timezone())
 }
 
 func CalendarFindOrCreate(name, calendarType, token string, currUser *JwtUser) (*CalendarModel, error) {

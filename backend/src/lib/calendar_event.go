@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type TimeBlock struct {
+type GCalendarEvent struct {
 	Name      string    `json:"name"`
 	StartTime time.Time `json:"startTime"`
 	EndTime   time.Time `json:"endTime"`
@@ -13,16 +13,16 @@ type TimeBlock struct {
 	Id        int64     `json:"id"`
 }
 
-type DayTimeBlock []*TimeBlock
+type GCalendarEventsGroup []*GCalendarEvent
 
-func (by DayTimeBlock) Less(i, j int) bool { return by[i].Less(by[j]) }
+func (by GCalendarEventsGroup) Less(i, j int) bool { return by[i].Less(by[j]) }
 
-func (day DayTimeBlock) Len() int { return len(day) }
+func (day GCalendarEventsGroup) Len() int { return len(day) }
 
-func (day DayTimeBlock) Swap(i, j int) { day[i], day[j] = day[j], day[i] }
+func (day GCalendarEventsGroup) Swap(i, j int) { day[i], day[j] = day[j], day[i] }
 
-func (day DayTimeBlock) MergeOverlaps() DayTimeBlock {
-	var mergedEvents DayTimeBlock
+func (day GCalendarEventsGroup) MergeOverlaps() GCalendarEventsGroup {
+	var mergedEvents GCalendarEventsGroup
 	sort.Sort(day)
 
 	if day.Len() > 0 {
@@ -40,18 +40,18 @@ func (day DayTimeBlock) MergeOverlaps() DayTimeBlock {
 	return mergedEvents
 }
 
-func NewTimeBlock(name string, startTime, endTime time.Time, internal bool, id int64) *TimeBlock {
-	return &TimeBlock{name, startTime, endTime, internal, id}
+func NewGCalendarEvent(name string, startTime, endTime time.Time, internal bool, id int64) *GCalendarEvent {
+	return &GCalendarEvent{name, startTime, endTime, internal, id}
 }
 
-// func (t TimeBlock) String() string {
+// func (t GCalendarEvent) String() string {
 // 	startTimeStr := t.startTime.Format("15:04")
 // 	endTimeStr := t.endTime.Format("15:04")
 
 // 	return fmt.Sprintf("%s (%s - %s)", t.name, startTimeStr, endTimeStr)
 // }
 
-func (t1 *TimeBlock) Less(t2 *TimeBlock) bool {
+func (t1 *GCalendarEvent) Less(t2 *GCalendarEvent) bool {
 	if t1.StartTime.Before(t2.StartTime) {
 		return true
 	} else if t1.StartTime.Equal(t2.StartTime) {
@@ -60,7 +60,7 @@ func (t1 *TimeBlock) Less(t2 *TimeBlock) bool {
 	return false
 }
 
-func (t1 *TimeBlock) Merge(t2 *TimeBlock) bool {
+func (t1 *GCalendarEvent) Merge(t2 *GCalendarEvent) bool {
 	// Check for overlap before merging
 	if !t1.Overlaps(t2) {
 		return false // Don't merge if there's no overlap
@@ -72,11 +72,11 @@ func (t1 *TimeBlock) Merge(t2 *TimeBlock) bool {
 	return true
 }
 
-func (t1 *TimeBlock) Overlaps(t2 *TimeBlock) bool {
+func (t1 *GCalendarEvent) Overlaps(t2 *GCalendarEvent) bool {
 	return t1.OverlapInterval(t2.StartTime, t2.EndTime)
 }
 
-func (t1 *TimeBlock) OverlapInterval(start, end time.Time) bool {
+func (t1 *GCalendarEvent) OverlapInterval(start, end time.Time) bool {
 	if t1.StartTime.After(start) {
 		return t1.StartTime.Before(end)
 	} else {

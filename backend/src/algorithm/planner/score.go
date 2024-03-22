@@ -22,13 +22,17 @@ func Score(event models.CalendarEventAssigner, currDate time.Time) int {
 
 func CompareEvents(event1, event2 models.CalendarEventAssigner, currDate time.Time) bool {
 	weekday := currDate.Weekday().String()
-	if event1.IsPreferredDay(weekday) && event2.IsPreferredDay(weekday) {
-		if event1.HoursLeft(currDate) == event2.HoursLeft(currDate) {
+	event1Preferred := event1.IsPreferredDay(weekday)
+	event2Preferred := event2.IsPreferredDay(weekday)
+	if event1Preferred && event2Preferred {
+		event1HoursLeft := event1.HoursLeft(currDate)
+		event2HoursLeft := event2.HoursLeft(currDate)
+		if event1HoursLeft == event2HoursLeft {
 			return event1.PreferredDaysLeft(currDate) < event2.PreferredDaysLeft(currDate)
 		} else {
-			return event1.HoursLeft(currDate) > event2.HoursLeft(currDate)
+			return event1HoursLeft > event2HoursLeft
 		}
 	} else {
-		return event1.IsPreferredDay(weekday)
+		return event1Preferred
 	}
 }

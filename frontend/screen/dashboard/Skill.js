@@ -50,7 +50,7 @@ export default function SkillScreen() {
         <View style={styles.container}>
             <ScrollView>
                 {skillsData.map((skill, index) => (
-                    <Skill name={skill.name} duration={skill.duration} timepreference={skill.timepreference} categories={skill.categories} key={index} />
+                    <Skill id={skill.id} name={skill.name} duration={skill.duration} timepreference={skill.timepreference} categories={skill.categories} key={index} />
                 ))}
             </ScrollView>
             <TouchableOpacity style={styles.buttonContainer} onPress={handleButtonClick}>
